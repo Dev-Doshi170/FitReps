@@ -1,0 +1,10 @@
+{
+  "version": 1,
+  "skills": {
+    "react-native-skills": {
+      "source": "Dev-Doshi170/react-native-skill",
+      "sourceType": "github",
+      "computedHash": "72abfdb28599fb35168dd1e0014b818b0c2572ccaa1b72dd0829127b4f077ac1"
+    }
+  }
+}
