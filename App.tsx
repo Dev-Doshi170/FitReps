@@ -2,28 +2,43 @@
  * @format
  */
 
-import { StatusBar, StyleSheet, Text, useColorScheme, View } from 'react-native';
+import { config } from '@gluestack-ui/config';
+import { Center, GluestackUIProvider } from '@gluestack-ui/themed';
+import { ActivityIndicator, StatusBar, StyleSheet } from 'react-native';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { Provider } from 'react-redux';
+import { PersistGate } from 'redux-persist/integration/react';
 
-function App() {
-  const isDark = useColorScheme() === 'dark';
+import RootNavigator from './src/navigation/RootNavigator';
+import { persistor, store } from './src/store';
 
+function PersistLoading() {
   return (
-    <View style={styles.root}>
-      <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />
-      <Text style={styles.title}>Hello, World</Text>
-    </View>
+    <GluestackUIProvider config={config} colorMode="dark">
+      <Center flex={1} bg="$backgroundDark950">
+        <ActivityIndicator />
+      </Center>
+    </GluestackUIProvider>
   );
 }
 
-const styles = StyleSheet.create({
-  root: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  title: {
-    fontSize: 24,
-  },
-});
+function App() {
+  return (
+    <GestureHandlerRootView style={styles.root}>
+      <Provider store={store}>
+        <PersistGate persistor={persistor} loading={<PersistLoading />}>
+          <GluestackUIProvider config={config} colorMode="dark">
+            <StatusBar barStyle="light-content" />
+            <RootNavigator />
+          </GluestackUIProvider>
+        </PersistGate>
+      </Provider>
+    </GestureHandlerRootView>
+  );
+}
 
 export default App;
+
+const styles = StyleSheet.create({
+  root: { flex: 1 },
+});

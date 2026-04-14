@@ -1,0 +1,973 @@
+{
+  "plan": {
+    "name": "5-Day Lean Muscle Split",
+    "goal": "Lean muscle mass (non-bulky)",
+    "level": "Intermediate (6 months training)",
+    "days_per_week": 5,
+    "rest_days": [
+      "Saturday",
+      "Sunday"
+    ],
+    "training_principles": {
+      "rep_range": "10-15 isolation, 6-10 compounds",
+      "rest_seconds": {
+        "compound_lifts": "90-120",
+        "isolation_exercises": "60-75"
+      },
+      "tempo": "2s eccentric (down), 1s concentric (up)",
+      "progressive_overload": "Add 1 rep per session before increasing weight"
+    }
+  },
+  "schedule": [
+    {
+      "day": "Monday",
+      "focus": "Push \u2014 Chest + Shoulders + Triceps",
+      "type": "Push",
+      "duration_minutes": 80,
+      "warmup": "5 min cross cycling + 2 sets light dumbbell shoulder circles",
+      "exercises": [
+        {
+          "order": 1,
+          "name": "Barbell Bench Press",
+          "equipment": "Barbell",
+          "type": "Compound",
+          "sets": 4,
+          "reps": "8-10",
+          "muscle_primary": "Chest (pec major)",
+          "muscle_secondary": [
+            "Front deltoid",
+            "Triceps"
+          ],
+          "note": "Grip just outside shoulder width. Avoid wide grip to protect shoulders.",
+          "sets_log": [
+            {
+              "set": 1,
+              "weight": null,
+              "reps": null
+            },
+            {
+              "set": 2,
+              "weight": null,
+              "reps": null
+            },
+            {
+              "set": 3,
+              "weight": null,
+              "reps": null
+            },
+            {
+              "set": 4,
+              "weight": null,
+              "reps": null
+            }
+          ]
+        },
+        {
+          "order": 2,
+          "name": "Incline Dumbbell Press",
+          "equipment": "Dumbbell",
+          "type": "Compound",
+          "sets": 3,
+          "reps": "10-12",
+          "muscle_primary": "Upper chest (pec clavicular head)",
+          "muscle_secondary": [
+            "Front deltoid",
+            "Triceps"
+          ],
+          "note": "Bench at 30-45 degrees. Upper chest key for defined look.",
+          "sets_log": [
+            {
+              "set": 1,
+              "weight": null,
+              "reps": null
+            },
+            {
+              "set": 2,
+              "weight": null,
+              "reps": null
+            },
+            {
+              "set": 3,
+              "weight": null,
+              "reps": null
+            }
+          ]
+        },
+        {
+          "order": 3,
+          "name": "Chest Fly Machine",
+          "equipment": "Machine",
+          "type": "Isolation",
+          "sets": 3,
+          "reps": "15",
+          "muscle_primary": "Chest (pec major)",
+          "muscle_secondary": [],
+          "note": "Slow stretch at bottom. Squeeze at top.",
+          "sets_log": [
+            {
+              "set": 1,
+              "weight": null,
+              "reps": null
+            },
+            {
+              "set": 2,
+              "weight": null,
+              "reps": null
+            },
+            {
+              "set": 3,
+              "weight": null,
+              "reps": null
+            }
+          ]
+        },
+        {
+          "order": 4,
+          "name": "Dumbbell Lateral Raise",
+          "equipment": "Dumbbell",
+          "type": "Isolation",
+          "sets": 4,
+          "reps": "15",
+          "muscle_primary": "Lateral deltoid",
+          "muscle_secondary": [],
+          "note": "Lead with elbows, not wrists. Slight forward lean.",
+          "sets_log": [
+            {
+              "set": 1,
+              "weight": null,
+              "reps": null
+            },
+            {
+              "set": 2,
+              "weight": null,
+              "reps": null
+            },
+            {
+              "set": 3,
+              "weight": null,
+              "reps": null
+            },
+            {
+              "set": 4,
+              "weight": null,
+              "reps": null
+            }
+          ]
+        },
+        {
+          "order": 5,
+          "name": "ISO Lateral Shoulder Press Machine",
+          "equipment": "Machine",
+          "type": "Compound",
+          "sets": 3,
+          "reps": "12",
+          "muscle_primary": "Deltoids (all heads)",
+          "muscle_secondary": [
+            "Triceps"
+          ],
+          "note": "Safe overhead pressing after lateral raises.",
+          "sets_log": [
+            {
+              "set": 1,
+              "weight": null,
+              "reps": null
+            },
+            {
+              "set": 2,
+              "weight": null,
+              "reps": null
+            },
+            {
+              "set": 3,
+              "weight": null,
+              "reps": null
+            }
+          ]
+        },
+        {
+          "order": 6,
+          "name": "Dumbbell Overhead Tricep Extension",
+          "equipment": "Dumbbell",
+          "type": "Isolation",
+          "sets": 3,
+          "reps": "12",
+          "muscle_primary": "Triceps (long head)",
+          "muscle_secondary": [],
+          "note": "Full stretch at bottom. Use one dumbbell overhead.",
+          "sets_log": [
+            {
+              "set": 1,
+              "weight": null,
+              "reps": null
+            },
+            {
+              "set": 2,
+              "weight": null,
+              "reps": null
+            },
+            {
+              "set": 3,
+              "weight": null,
+              "reps": null
+            }
+          ]
+        }
+      ],
+      "cardio_finisher": {
+        "type": "Treadmill incline walk",
+        "duration_minutes": 15,
+        "parameters": "12-15% incline, 5.5 km/h"
+      }
+    },
+    {
+      "day": "Tuesday",
+      "focus": "Pull \u2014 Back + Biceps",
+      "type": "Pull",
+      "duration_minutes": 80,
+      "warmup": "5 min cycling + band pull-aparts if available",
+      "exercises": [
+        {
+          "order": 1,
+          "name": "Barbell Bent-Over Row",
+          "equipment": "Barbell",
+          "type": "Compound",
+          "sets": 4,
+          "reps": "8-10",
+          "muscle_primary": "Mid back (rhomboids, traps, lats)",
+          "muscle_secondary": [
+            "Biceps",
+            "Rear deltoid"
+          ],
+          "note": "Hinge at hips to 45 degrees, neutral spine. Don't ego-lift.",
+          "sets_log": [
+            {
+              "set": 1,
+              "weight": null,
+              "reps": null
+            },
+            {
+              "set": 2,
+              "weight": null,
+              "reps": null
+            },
+            {
+              "set": 3,
+              "weight": null,
+              "reps": null
+            },
+            {
+              "set": 4,
+              "weight": null,
+              "reps": null
+            }
+          ]
+        },
+        {
+          "order": 2,
+          "name": "Pull-ups / Assisted Pull-ups",
+          "equipment": "Bodyweight / Assisted machine",
+          "type": "Compound",
+          "sets": 3,
+          "reps": "Max or 8",
+          "muscle_primary": "Latissimus dorsi",
+          "muscle_secondary": [
+            "Biceps",
+            "Rear deltoid"
+          ],
+          "note": "Best lat width builder. Use assisted machine if needed.",
+          "sets_log": [
+            {
+              "set": 1,
+              "weight": null,
+              "reps": null
+            },
+            {
+              "set": 2,
+              "weight": null,
+              "reps": null
+            },
+            {
+              "set": 3,
+              "weight": null,
+              "reps": null
+            }
+          ]
+        },
+        {
+          "order": 3,
+          "name": "Front Facing Lat Pull Down Machine",
+          "equipment": "Machine",
+          "type": "Compound",
+          "sets": 3,
+          "reps": "12",
+          "muscle_primary": "Latissimus dorsi",
+          "muscle_secondary": [
+            "Biceps"
+          ],
+          "note": "Backup vertical pull. Wide grip, pull to upper chest.",
+          "sets_log": [
+            {
+              "set": 1,
+              "weight": null,
+              "reps": null
+            },
+            {
+              "set": 2,
+              "weight": null,
+              "reps": null
+            },
+            {
+              "set": 3,
+              "weight": null,
+              "reps": null
+            }
+          ]
+        },
+        {
+          "order": 4,
+          "name": "Seated Cable Row / T-Bar Row Machine",
+          "equipment": "Cable or Machine",
+          "type": "Compound",
+          "sets": 3,
+          "reps": "12",
+          "muscle_primary": "Mid back (rhomboids, lower traps)",
+          "muscle_secondary": [
+            "Biceps"
+          ],
+          "note": "Squeeze shoulder blades at peak contraction.",
+          "sets_log": [
+            {
+              "set": 1,
+              "weight": null,
+              "reps": null
+            },
+            {
+              "set": 2,
+              "weight": null,
+              "reps": null
+            },
+            {
+              "set": 3,
+              "weight": null,
+              "reps": null
+            }
+          ]
+        },
+        {
+          "order": 5,
+          "name": "Dumbbell Bicep Curl",
+          "equipment": "Dumbbell",
+          "type": "Isolation",
+          "sets": 3,
+          "reps": "12",
+          "muscle_primary": "Biceps brachii",
+          "muscle_secondary": [],
+          "note": "Supinate (twist palm up) at the top for full contraction.",
+          "sets_log": [
+            {
+              "set": 1,
+              "weight": null,
+              "reps": null
+            },
+            {
+              "set": 2,
+              "weight": null,
+              "reps": null
+            },
+            {
+              "set": 3,
+              "weight": null,
+              "reps": null
+            }
+          ]
+        },
+        {
+          "order": 6,
+          "name": "Hammer Curl",
+          "equipment": "Dumbbell",
+          "type": "Isolation",
+          "sets": 3,
+          "reps": "12",
+          "muscle_primary": "Brachialis",
+          "muscle_secondary": [
+            "Brachioradialis"
+          ],
+          "note": "Neutral grip (thumbs up). Adds arm thickness.",
+          "sets_log": [
+            {
+              "set": 1,
+              "weight": null,
+              "reps": null
+            },
+            {
+              "set": 2,
+              "weight": null,
+              "reps": null
+            },
+            {
+              "set": 3,
+              "weight": null,
+              "reps": null
+            }
+          ]
+        }
+      ],
+      "cardio_finisher": {
+        "type": "Steady cycling",
+        "duration_minutes": 15,
+        "parameters": "Zone 2 pace \u2014 conversational (60-65% max HR)"
+      }
+    },
+    {
+      "day": "Wednesday",
+      "focus": "Legs \u2014 Quad + Glute + Hamstring",
+      "type": "Legs",
+      "duration_minutes": 85,
+      "warmup": "8 min cycling, increasing resistance every 2 min",
+      "exercises": [
+        {
+          "order": 1,
+          "name": "Barbell Back Squat",
+          "equipment": "Barbell",
+          "type": "Compound",
+          "sets": 4,
+          "reps": "8-10",
+          "muscle_primary": "Quadriceps, Glutes",
+          "muscle_secondary": [
+            "Hamstrings",
+            "Core",
+            "Erectors"
+          ],
+          "note": "Squat to parallel or slightly below.",
+          "sets_log": [
+            {
+              "set": 1,
+              "weight": null,
+              "reps": null
+            },
+            {
+              "set": 2,
+              "weight": null,
+              "reps": null
+            },
+            {
+              "set": 3,
+              "weight": null,
+              "reps": null
+            },
+            {
+              "set": 4,
+              "weight": null,
+              "reps": null
+            }
+          ]
+        },
+        {
+          "order": 2,
+          "name": "Romanian Deadlift",
+          "equipment": "Barbell or Dumbbell",
+          "type": "Compound",
+          "sets": 3,
+          "reps": "10",
+          "muscle_primary": "Hamstrings, Glutes",
+          "muscle_secondary": [
+            "Erector spinae"
+          ],
+          "note": "Hinge, don't squat. Feel stretch in hamstrings. Slight knee bend.",
+          "sets_log": [
+            {
+              "set": 1,
+              "weight": null,
+              "reps": null
+            },
+            {
+              "set": 2,
+              "weight": null,
+              "reps": null
+            },
+            {
+              "set": 3,
+              "weight": null,
+              "reps": null
+            }
+          ]
+        },
+        {
+          "order": 3,
+          "name": "Hack Squat Machine",
+          "equipment": "Machine",
+          "type": "Compound",
+          "sets": 3,
+          "reps": "12",
+          "muscle_primary": "Quadriceps",
+          "muscle_secondary": [
+            "Glutes"
+          ],
+          "note": "Deeper squat pattern, less spinal load.",
+          "sets_log": [
+            {
+              "set": 1,
+              "weight": null,
+              "reps": null
+            },
+            {
+              "set": 2,
+              "weight": null,
+              "reps": null
+            },
+            {
+              "set": 3,
+              "weight": null,
+              "reps": null
+            }
+          ]
+        },
+        {
+          "order": 4,
+          "name": "Leg Curl Machine",
+          "equipment": "Machine",
+          "type": "Isolation",
+          "sets": 3,
+          "reps": "15",
+          "muscle_primary": "Hamstrings",
+          "muscle_secondary": [],
+          "note": "Balances quad dominance. Slow eccentric phase.",
+          "sets_log": [
+            {
+              "set": 1,
+              "weight": null,
+              "reps": null
+            },
+            {
+              "set": 2,
+              "weight": null,
+              "reps": null
+            },
+            {
+              "set": 3,
+              "weight": null,
+              "reps": null
+            }
+          ]
+        },
+        {
+          "order": 5,
+          "name": "Hip Thruster Machine",
+          "equipment": "Machine",
+          "type": "Isolation",
+          "sets": 3,
+          "reps": "12",
+          "muscle_primary": "Gluteus maximus",
+          "muscle_secondary": [
+            "Hamstrings"
+          ],
+          "note": "Full hip extension at top. Squeeze hard at peak.",
+          "sets_log": [
+            {
+              "set": 1,
+              "weight": null,
+              "reps": null
+            },
+            {
+              "set": 2,
+              "weight": null,
+              "reps": null
+            },
+            {
+              "set": 3,
+              "weight": null,
+              "reps": null
+            }
+          ]
+        },
+        {
+          "order": 6,
+          "name": "Seated Calf Raises Machine",
+          "equipment": "Machine",
+          "type": "Isolation",
+          "sets": 4,
+          "reps": "20",
+          "muscle_primary": "Soleus",
+          "muscle_secondary": [],
+          "note": "Full stretch at bottom. Bent knee targets soleus.",
+          "sets_log": [
+            {
+              "set": 1,
+              "weight": null,
+              "reps": null
+            },
+            {
+              "set": 2,
+              "weight": null,
+              "reps": null
+            },
+            {
+              "set": 3,
+              "weight": null,
+              "reps": null
+            },
+            {
+              "set": 4,
+              "weight": null,
+              "reps": null
+            }
+          ]
+        }
+      ],
+      "cardio_finisher": {
+        "type": "Treadmill walk",
+        "duration_minutes": 10,
+        "parameters": "Flat, easy pace \u2014 active recovery only"
+      }
+    },
+    {
+      "day": "Thursday",
+      "focus": "Core + Cardio + Weak Points",
+      "type": "Core",
+      "duration_minutes": 65,
+      "warmup": "None \u2014 light day",
+      "exercises": [
+        {
+          "order": 1,
+          "name": "Hanging Leg Raise",
+          "equipment": "Pull-up bar (Bodyweight)",
+          "type": "Compound",
+          "sets": 4,
+          "reps": "15",
+          "muscle_primary": "Lower abs, Hip flexors",
+          "muscle_secondary": [
+            "Upper abs"
+          ],
+          "note": "Control the swing. Lower legs slowly.",
+          "sets_log": [
+            {
+              "set": 1,
+              "weight": null,
+              "reps": null
+            },
+            {
+              "set": 2,
+              "weight": null,
+              "reps": null
+            },
+            {
+              "set": 3,
+              "weight": null,
+              "reps": null
+            },
+            {
+              "set": 4,
+              "weight": null,
+              "reps": null
+            }
+          ]
+        },
+        {
+          "order": 2,
+          "name": "Abdominal Crunch Machine",
+          "equipment": "Machine",
+          "type": "Isolation",
+          "sets": 3,
+          "reps": "20",
+          "muscle_primary": "Rectus abdominis (upper)",
+          "muscle_secondary": [],
+          "note": "Pause and squeeze at peak contraction.",
+          "sets_log": [
+            {
+              "set": 1,
+              "weight": null,
+              "reps": null
+            },
+            {
+              "set": 2,
+              "weight": null,
+              "reps": null
+            },
+            {
+              "set": 3,
+              "weight": null,
+              "reps": null
+            }
+          ]
+        },
+        {
+          "order": 3,
+          "name": "Plank",
+          "equipment": "Bodyweight",
+          "type": "Isometric",
+          "sets": 3,
+          "reps": "45-60 seconds",
+          "muscle_primary": "Transverse abdominis (deep core)",
+          "muscle_secondary": [
+            "Obliques",
+            "Glutes"
+          ],
+          "note": "Neutral spine \u2014 don't let hips sag or rise.",
+          "sets_log": [
+            {
+              "set": 1,
+              "weight": null,
+              "reps": null
+            },
+            {
+              "set": 2,
+              "weight": null,
+              "reps": null
+            },
+            {
+              "set": 3,
+              "weight": null,
+              "reps": null
+            }
+          ]
+        },
+        {
+          "order": 4,
+          "name": "Dumbbell Side Bend",
+          "equipment": "Dumbbell",
+          "type": "Isolation",
+          "sets": 3,
+          "reps": "20 each side",
+          "muscle_primary": "Obliques",
+          "muscle_secondary": [],
+          "note": "Hold dumbbell in one hand. Directly targets love handles.",
+          "sets_log": [
+            {
+              "set": 1,
+              "weight": null,
+              "reps": null
+            },
+            {
+              "set": 2,
+              "weight": null,
+              "reps": null
+            },
+            {
+              "set": 3,
+              "weight": null,
+              "reps": null
+            }
+          ]
+        },
+        {
+          "order": 5,
+          "name": "Back Extension Machine",
+          "equipment": "Machine",
+          "type": "Isolation",
+          "sets": 3,
+          "reps": "20",
+          "muscle_primary": "Erector spinae",
+          "muscle_secondary": [
+            "Glutes"
+          ],
+          "note": "Pairs with crunches for spine balance.",
+          "sets_log": [
+            {
+              "set": 1,
+              "weight": null,
+              "reps": null
+            },
+            {
+              "set": 2,
+              "weight": null,
+              "reps": null
+            },
+            {
+              "set": 3,
+              "weight": null,
+              "reps": null
+            }
+          ]
+        }
+      ],
+      "cardio_finisher": {
+        "type": "Treadmill LISS-HIIT hybrid",
+        "duration_minutes": 25,
+        "parameters": "1 min walk (7 km/h) alternating with 1 min jog (9 km/h)"
+      }
+    },
+    {
+      "day": "Friday",
+      "focus": "Full Body Compound + Strength",
+      "type": "Full Body",
+      "duration_minutes": 80,
+      "warmup": "5 min cross cycling + dynamic leg swings",
+      "exercises": [
+        {
+          "order": 1,
+          "name": "Deadlift",
+          "equipment": "Barbell",
+          "type": "Compound",
+          "sets": 3,
+          "reps": "6-8",
+          "muscle_primary": "Full posterior chain (hamstrings, glutes, erectors)",
+          "muscle_secondary": [
+            "Traps",
+            "Lats",
+            "Core",
+            "Quads"
+          ],
+          "note": "Most complete full-body compound. Learn form carefully before loading heavy.",
+          "sets_log": [
+            {
+              "set": 1,
+              "weight": null,
+              "reps": null
+            },
+            {
+              "set": 2,
+              "weight": null,
+              "reps": null
+            },
+            {
+              "set": 3,
+              "weight": null,
+              "reps": null
+            }
+          ]
+        },
+        {
+          "order": 2,
+          "name": "Dumbbell Shoulder Press",
+          "equipment": "Dumbbell",
+          "type": "Compound",
+          "sets": 3,
+          "reps": "10",
+          "muscle_primary": "Deltoids (all heads)",
+          "muscle_secondary": [
+            "Triceps"
+          ],
+          "note": "Full range of motion. Neutral or pronated grip.",
+          "sets_log": [
+            {
+              "set": 1,
+              "weight": null,
+              "reps": null
+            },
+            {
+              "set": 2,
+              "weight": null,
+              "reps": null
+            },
+            {
+              "set": 3,
+              "weight": null,
+              "reps": null
+            }
+          ]
+        },
+        {
+          "order": 3,
+          "name": "Dumbbell Incline Row",
+          "equipment": "Dumbbell",
+          "type": "Compound",
+          "sets": 3,
+          "reps": "12",
+          "muscle_primary": "Mid back (rhomboids, lower traps)",
+          "muscle_secondary": [
+            "Biceps"
+          ],
+          "note": "Chest-supported on incline bench. Zero lower back stress.",
+          "sets_log": [
+            {
+              "set": 1,
+              "weight": null,
+              "reps": null
+            },
+            {
+              "set": 2,
+              "weight": null,
+              "reps": null
+            },
+            {
+              "set": 3,
+              "weight": null,
+              "reps": null
+            }
+          ]
+        },
+        {
+          "order": 4,
+          "name": "Leg Press Machine",
+          "equipment": "Machine",
+          "type": "Compound",
+          "sets": 3,
+          "reps": "15",
+          "muscle_primary": "Quadriceps, Glutes",
+          "muscle_secondary": [
+            "Hamstrings"
+          ],
+          "note": "Don't lock knees at top.",
+          "sets_log": [
+            {
+              "set": 1,
+              "weight": null,
+              "reps": null
+            },
+            {
+              "set": 2,
+              "weight": null,
+              "reps": null
+            },
+            {
+              "set": 3,
+              "weight": null,
+              "reps": null
+            }
+          ]
+        },
+        {
+          "order": 5,
+          "name": "Dumbbell Bicep Curl",
+          "equipment": "Dumbbell",
+          "type": "Isolation",
+          "sets": 2,
+          "reps": "15",
+          "muscle_primary": "Biceps brachii",
+          "muscle_secondary": [],
+          "note": "Higher rep finishing set for definition.",
+          "sets_log": [
+            {
+              "set": 1,
+              "weight": null,
+              "reps": null
+            },
+            {
+              "set": 2,
+              "weight": null,
+              "reps": null
+            }
+          ]
+        },
+        {
+          "order": 6,
+          "name": "Dumbbell Tricep Kickback",
+          "equipment": "Dumbbell",
+          "type": "Isolation",
+          "sets": 2,
+          "reps": "15",
+          "muscle_primary": "Triceps (lateral and medial head)",
+          "muscle_secondary": [],
+          "note": "Full extension at the back. Slow tempo.",
+          "sets_log": [
+            {
+              "set": 1,
+              "weight": null,
+              "reps": null
+            },
+            {
+              "set": 2,
+              "weight": null,
+              "reps": null
+            }
+          ]
+        }
+      ],
+      "cardio_finisher": {
+        "type": "Cross cycling",
+        "duration_minutes": 20,
+        "parameters": "Moderate steady-state, conversational pace"
+      }
+    }
+  ]
+}

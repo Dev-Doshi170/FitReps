@@ -76,3 +76,5 @@ yarn-error.log
 
 # md files
 .agents/
+
+#.env
