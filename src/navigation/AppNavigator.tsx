@@ -1,4 +1,4 @@
-import { DarkTheme } from '@react-navigation/native';
+import type { ComponentProps } from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 
@@ -12,6 +12,8 @@ import WorkoutPlanDetailScreen from '../screens/WorkoutPlanDetailScreen';
 import WorkoutPlansScreen from '../screens/WorkoutPlansScreen';
 import WorkoutSessionSummaryScreen from '../screens/WorkoutSessionSummaryScreen';
 import type { Exercise } from '../store/slices/workoutSlice';
+import CrtHeader from './CrtHeader';
+import HardwareTabBar from './HardwareTabBar';
 
 export type MainTabParamList = {
   Dashboard: undefined;
@@ -21,7 +23,7 @@ export type MainTabParamList = {
 
 export type AppStackParamList = {
   MainTabs: undefined;
-  TodayWorkout: undefined;
+  TodayWorkout: { planDayId: string };
   ExerciseLogging: { exercise: Exercise };
   WorkoutSessionSummary: undefined;
   WeightHistory: undefined;
@@ -32,82 +34,93 @@ export type AppStackParamList = {
 const Tab = createBottomTabNavigator<MainTabParamList>();
 const Stack = createNativeStackNavigator<AppStackParamList>();
 
+function CrtTabBar(props: ComponentProps<typeof HardwareTabBar>) {
+  return <HardwareTabBar {...props} />;
+}
+
 function MainTabs() {
   return (
     <Tab.Navigator
+      tabBar={CrtTabBar}
       screenOptions={{
         headerShown: false,
-        tabBarStyle: { backgroundColor: DarkTheme.colors.card },
-        tabBarActiveTintColor: DarkTheme.colors.text,
-        tabBarInactiveTintColor: DarkTheme.colors.border,
       }}>
-      <Tab.Screen name="Dashboard" component={DashboardScreen} />
-      <Tab.Screen name="History" component={HistoryScreen} />
-      <Tab.Screen name="Profile" component={ProfileScreen} />
+      <Tab.Screen
+        name="Dashboard"
+        component={DashboardScreen}
+        options={{ tabBarLabel: 'TODAY' }}
+      />
+      <Tab.Screen
+        name="History"
+        component={HistoryScreen}
+        options={{ tabBarLabel: 'ARCHIVE' }}
+      />
+      <Tab.Screen
+        name="Profile"
+        component={ProfileScreen}
+        options={{ tabBarLabel: 'OPERATOR' }}
+      />
     </Tab.Navigator>
   );
 }
 
+const stackScreenOptions = {
+  header: CrtHeader,
+  headerShown: true,
+  animation: 'fade' as const,
+};
+
 export default function AppNavigator() {
   return (
-    <Stack.Navigator>
-      <Stack.Screen
-        name="MainTabs"
-        component={MainTabs}
-        options={{ headerShown: false }}
-      />
+    <Stack.Navigator screenOptions={stackScreenOptions}>
+      <Stack.Screen name="MainTabs" component={MainTabs} options={{ headerShown: false }} />
       <Stack.Screen
         name="TodayWorkout"
         component={TodayWorkoutScreen}
         options={{
-          title: "Today's workout",
-          headerStyle: { backgroundColor: DarkTheme.colors.card },
-          headerTintColor: DarkTheme.colors.text,
+          title: 'SESSION',
+          headerTitle: 'SESSION',
         }}
       />
       <Stack.Screen
         name="ExerciseLogging"
         component={ExerciseLoggingScreen}
         options={({ route }) => ({
-          title: route.params.exercise.name,
-          headerStyle: { backgroundColor: DarkTheme.colors.card },
-          headerTintColor: DarkTheme.colors.text,
+          title: route.params.exercise.name.toUpperCase(),
+          headerTitle: route.params.exercise.name.toUpperCase(),
         })}
       />
       <Stack.Screen
         name="WorkoutSessionSummary"
         component={WorkoutSessionSummaryScreen}
         options={{
-          title: 'Session summary',
-          headerStyle: { backgroundColor: DarkTheme.colors.card },
-          headerTintColor: DarkTheme.colors.text,
+          title: 'SESSION COMPLETE',
+          headerTitle: 'SESSION COMPLETE',
         }}
       />
       <Stack.Screen
         name="WeightHistory"
         component={WeightHistoryScreen}
         options={{
-          title: 'Weight history',
-          headerStyle: { backgroundColor: DarkTheme.colors.card },
-          headerTintColor: DarkTheme.colors.text,
+          title: 'BODY MASS LOG',
+          headerTitle: 'BODY MASS LOG',
         }}
       />
       <Stack.Screen
         name="WorkoutPlans"
         component={WorkoutPlansScreen}
         options={{
-          title: 'Workout plans',
-          headerStyle: { backgroundColor: DarkTheme.colors.card },
-          headerTintColor: DarkTheme.colors.text,
+          title: 'PLAN CATALOG',
+          headerTitle: 'PLAN CATALOG',
         }}
       />
       <Stack.Screen
         name="WorkoutPlanDetail"
         component={WorkoutPlanDetailScreen}
-        options={{
-          headerStyle: { backgroundColor: DarkTheme.colors.card },
-          headerTintColor: DarkTheme.colors.text,
-        }}
+        options={({ route }) => ({
+          title: route.params.planName.toUpperCase(),
+          headerTitle: route.params.planName.toUpperCase(),
+        })}
       />
     </Stack.Navigator>
   );

@@ -1,10 +1,8 @@
-import { Box, ButtonText, Divider, Text, VStack } from '@gluestack-ui/themed';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, ScrollView } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from 'react-native';
 
-import { AppButton } from '../components/ui';
+import { CrtScreen, HardwareButton } from '../components/crt';
 import type { AppStackParamList } from '../navigation/AppNavigator';
 import {
   DEFAULT_PLAN_NAME,
@@ -13,20 +11,17 @@ import {
 } from '../services/workoutPlan';
 import { useAppDispatch, useAppSelector } from '../store';
 import { setSelectedPlanId } from '../store/slices/workoutSlice';
+import { colors, fontFamily, spacing } from '../theme/theme';
 
 type Props = NativeStackScreenProps<AppStackParamList, 'WorkoutPlanDetail'>;
 
-export default function WorkoutPlanDetailScreen({ route, navigation }: Props) {
+export default function WorkoutPlanDetailScreen({ route }: Props) {
   const { planId, planName } = route.params;
   const dispatch = useAppDispatch();
   const selectedPlanId = useAppSelector(s => s.workout.selectedPlanId);
   const [detail, setDetail] = useState<WorkoutPlanDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    navigation.setOptions({ title: planName });
-  }, [navigation, planName]);
 
   useEffect(() => {
     let cancelled = false;
@@ -50,7 +45,6 @@ export default function WorkoutPlanDetailScreen({ route, navigation }: Props) {
     };
   }, [planId]);
 
-  /** Matches list screen: explicit selection, or default plan name when nothing stored yet. */
   const isActivePlan =
     selectedPlanId === planId ||
     (selectedPlanId == null && planName === DEFAULT_PLAN_NAME);
@@ -60,109 +54,147 @@ export default function WorkoutPlanDetailScreen({ route, navigation }: Props) {
   }, [dispatch, planId]);
 
   return (
-    <SafeAreaView style={{ flex: 1 }} edges={['bottom']}>
-      <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 32 }}>
-        <VStack space="lg">
-          {loading ? (
-            <VStack space="sm" alignItems="center" py="$8">
-              <ActivityIndicator />
-              <Text color="$textLight400" size="sm">
-                Loading plan…
-              </Text>
-            </VStack>
-          ) : null}
+    <CrtScreen flicker={false}>
+      <ScrollView contentContainerStyle={styles.pad}>
+        {loading ? (
+          <View style={styles.center}>
+            <ActivityIndicator color={colors.accent} />
+            <Text style={styles.muted}>LOADING…</Text>
+          </View>
+        ) : null}
 
-          {error ? (
-            <Text color="$red400" size="sm">
-              {error}
+        {error ? <Text style={styles.err}>{error}</Text> : null}
+
+        {!loading && detail ? (
+          <>
+            <View style={styles.hero}>
+              <Text style={styles.name}>{detail.name.toUpperCase()}</Text>
+              <Text style={styles.meta}>{detail.goal}</Text>
+              <Text style={styles.small}>
+                {detail.level} · {detail.daysPerWeek} SESSIONS/WK
+              </Text>
+            </View>
+
+            <HardwareButton
+              label={isActivePlan ? 'ACTIVE CHANNEL' : 'SET ACTIVE'}
+              variant={isActivePlan ? 'outlined' : 'filled'}
+              onPress={onUsePlan}
+              disabled={isActivePlan}
+            />
+
+            <Text style={styles.section}>SPLIT</Text>
+            <Text style={styles.body}>
+              EACH BLOCK IS A SESSION. START ANY SESSION FROM TODAY TAB.
             </Text>
-          ) : null}
 
-          {!loading && detail ? (
-            <>
-              <Box
-                bg="$backgroundDark800"
-                borderRadius="$lg"
-                p="$4"
-                borderWidth={1}
-                borderColor="$borderDark700">
-                <VStack space="sm">
-                  <Text color="$textLight50" fontWeight="$bold" size="xl">
-                    {detail.name}
+            {detail.sessions.map(session => (
+              <View key={`${session.day}-${session.sessionType}`} style={styles.session}>
+                <Text style={styles.sessionTitle}>{session.sessionType.toUpperCase()} DAY</Text>
+                <Text style={styles.meta}>{session.focus}</Text>
+                <Text style={styles.small}>~{session.durationMinutes} MIN</Text>
+                <View style={styles.divider} />
+                <Text style={styles.exHead}>EXERCISES</Text>
+                {session.exercises.map((ex, i) => (
+                  <Text key={`${ex.name}-${i}`} style={styles.exLine}>
+                    {String(i + 1).padStart(2, '0')} {ex.name} · {ex.sets}X{ex.reps}
                   </Text>
-                  <Text color="$textLight400" size="sm">
-                    {detail.goal}
-                  </Text>
-                  <Text color="$textLight500" size="xs">
-                    {detail.level} · {detail.daysPerWeek} training days / week
-                  </Text>
-                </VStack>
-              </Box>
-
-              <AppButton
-                onPress={onUsePlan}
-                isDisabled={isActivePlan}
-                variant={isActivePlan ? 'outline' : 'solid'}>
-                <ButtonText color="$textLight50">
-                  {isActivePlan ? 'This is your active plan' : 'Use this plan'}
-                </ButtonText>
-              </AppButton>
-
-              <Text color="$textLight300" fontWeight="$semibold" size="md">
-                Split & sessions
-              </Text>
-              <Text color="$textLight500" size="sm">
-                Each day shows the session focus (for example Push, Pull, Legs) and the exercises in
-                order.
-              </Text>
-
-              <VStack space="lg">
-                {detail.sessions.map(session => (
-                  <Box
-                    key={`${session.day}-${session.sessionType}`}
-                    bg="$backgroundDark800"
-                    borderRadius="$lg"
-                    p="$4"
-                    borderWidth={1}
-                    borderColor="$borderDark700">
-                    <VStack space="md">
-                      <VStack space="xs">
-                        <Text color="$textLight400" size="xs" textTransform="uppercase">
-                          {session.day}
-                        </Text>
-                        <Text color="$textLight50" fontWeight="$bold" size="lg">
-                          {session.sessionType}
-                        </Text>
-                        <Text color="$textLight400" size="sm">
-                          {session.focus}
-                        </Text>
-                        <Text color="$textLight500" size="xs">
-                          ~{session.durationMinutes} min
-                        </Text>
-                      </VStack>
-                      <Divider bg="$borderDark700" />
-                      <VStack space="sm">
-                        <Text color="$textLight500" size="xs" fontWeight="$semibold">
-                          Exercises
-                        </Text>
-                        {session.exercises.map((ex, i) => (
-                          <Text key={`${ex.name}-${i}`} color="$textLight200" size="sm">
-                            {i + 1}. {ex.name}
-                            <Text color="$textLight500" size="xs">
-                              {' '}
-                              · {ex.sets}×{ex.reps}
-                            </Text>
-                          </Text>
-                        ))}
-                      </VStack>
-                    </VStack>
-                  </Box>
                 ))}
-              </VStack>
-            </>
-          ) : null}
-        </VStack>
+              </View>
+            ))}
+          </>
+        ) : null}
       </ScrollView>
-    </SafeAreaView>
+    </CrtScreen>
   );
 }
+
+const styles = StyleSheet.create({
+  pad: {
+    paddingBottom: spacing(4),
+  },
+  center: {
+    alignItems: 'center',
+    padding: spacing(3),
+  },
+  muted: {
+    fontFamily: fontFamily.regular,
+    fontSize: 11,
+    color: colors.textMuted,
+    marginTop: 8,
+  },
+  err: {
+    fontFamily: fontFamily.regular,
+    fontSize: 11,
+    color: colors.danger,
+    marginBottom: spacing(1),
+  },
+  hero: {
+    borderWidth: 1,
+    borderColor: colors.borderSubtle,
+    padding: spacing(2),
+    marginBottom: spacing(2),
+  },
+  name: {
+    fontFamily: fontFamily.bold,
+    fontSize: 16,
+    color: colors.text,
+    marginBottom: 6,
+  },
+  meta: {
+    fontFamily: fontFamily.regular,
+    fontSize: 12,
+    color: colors.textMuted,
+  },
+  small: {
+    fontFamily: fontFamily.regular,
+    fontSize: 10,
+    color: colors.textMuted,
+    marginTop: 4,
+  },
+  section: {
+    fontFamily: fontFamily.bold,
+    fontSize: 11,
+    letterSpacing: 2,
+    marginTop: spacing(2),
+    marginBottom: 6,
+    color: colors.text,
+  },
+  body: {
+    fontFamily: fontFamily.regular,
+    fontSize: 10,
+    color: colors.textMuted,
+    marginBottom: spacing(2),
+    lineHeight: 15,
+  },
+  session: {
+    borderWidth: 1,
+    borderColor: colors.borderSubtle,
+    padding: spacing(1.5),
+    marginBottom: spacing(1.5),
+    backgroundColor: colors.surface,
+  },
+  sessionTitle: {
+    fontFamily: fontFamily.bold,
+    fontSize: 13,
+    color: colors.accent,
+    marginBottom: 4,
+  },
+  divider: {
+    height: 1,
+    backgroundColor: colors.borderSubtle,
+    marginVertical: spacing(1),
+  },
+  exHead: {
+    fontFamily: fontFamily.regular,
+    fontSize: 9,
+    letterSpacing: 2,
+    color: colors.textMuted,
+    marginBottom: 6,
+  },
+  exLine: {
+    fontFamily: fontFamily.regular,
+    fontSize: 11,
+    color: colors.text,
+    marginBottom: 4,
+  },
+});

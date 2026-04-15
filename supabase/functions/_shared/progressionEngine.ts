@@ -109,7 +109,7 @@ function buildNextStateBase(
   lastReps: number,
   recommendation: ProgressionRecommendation,
 ): ProgressionState {
-  const { repRangeMin, repRangeMax } = state;
+  const { repRangeMax } = state;
   let consecutiveEasySessions = state.consecutiveEasySessions;
   if (lastReps >= repRangeMax && sessionRpe === 'easy') {
     consecutiveEasySessions += 1;

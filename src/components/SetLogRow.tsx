@@ -92,9 +92,9 @@ export default function SetLogRow({
           <HStack flexWrap="wrap" space="sm" alignItems="center">
             {(
               [
-                { key: 'easy' as const, emoji: '😌', label: 'Easy' },
-                { key: 'medium' as const, emoji: '💪', label: 'Medium' },
-                { key: 'hard' as const, emoji: '🔥', label: 'Hard' },
+                { key: 'easy' as const, label: 'EASY' },
+                { key: 'medium' as const, label: 'MED' },
+                { key: 'hard' as const, label: 'HARD' },
               ] as const
             ).map(opt => (
               <Pressable
@@ -111,7 +111,6 @@ export default function SetLogRow({
                   borderColor="$borderDark600"
                   space="xs"
                   alignItems="center">
-                  <Text size="sm">{opt.emoji}</Text>
                   <Text color="$textLight200" size="xs">
                     {opt.label}
                   </Text>

@@ -2,7 +2,14 @@ import { createAsyncThunk, createSlice, type PayloadAction } from '@reduxjs/tool
 import type { ProgressionRecommendation, ProgressionState } from '../../lib/progressionTypes';
 import { applyProgressionFromEdge, getProgressionState } from '../../lib/progressionService';
 import { parsePlanRepsString } from '../../lib/repRange';
-import { fetchDayPlanForWeekday } from '../../services/workoutPlan';
+import {
+  fetchLastPerformedDatesForPlanDays,
+  fetchPlanDayById,
+  fetchPlanName,
+  fetchPlanSessionsOverview,
+  resolveActivePlanId,
+  type PlanSessionCard,
+} from '../../services/workoutPlan';
 import { supabase } from '../../services/supabase';
 import type { AuthState } from './authSlice';
 
@@ -18,6 +25,11 @@ export type Exercise = {
 };
 
 export type DayPlan = {
+  /** `plan_days.id` — used for logging and last-performed. */
+  plan_day_id: string;
+  /** Split label from DB, e.g. Push, Pull (shown as card / screen title). */
+  session_type: string;
+  /** Legacy calendar slot label from DB (Monday, …); not shown as primary title. */
   day_name: string;
   focus: string;
   duration_minutes: number;
@@ -60,6 +72,7 @@ type WorkoutLogRow = {
   reps: number | null;
   weight: number | null;
   rpe: string | null;
+  plan_day_id?: string | null;
 };
 
 export type BodyWeightEntry = {
@@ -72,8 +85,20 @@ export type WorkoutState = {
   /** Loading today's plan from Supabase (plans / plan_days / plan_exercises). */
   todayWorkoutLoading: boolean;
   todayWorkoutError: string | null;
-  /** When set, `fetchDayPlanForWeekday` loads this plan; when null, the default plan name is used. */
+  /** `plan_days.id` for the session currently being logged (also on `todayWorkout`). */
+  activePlanDayId: string | null;
+  /** Dashboard: all sessions in the active plan with exercise names for previews. */
+  planSessionCards: PlanSessionCard[];
+  /** ISO timestamps from `workout_logs.date`, keyed by `plan_day_id`. */
+  lastPerformedByPlanDayId: Record<string, string>;
+  planSessionsLoading: boolean;
+  planSessionsError: string | null;
+  /** When set, catalog queries use this plan; when null, the default plan name is used. */
   selectedPlanId: string | null;
+  /** Resolved active plan display name (dashboard status strip). */
+  activePlanName: string | null;
+  /** Monotonic clock when current session plan day was loaded (elapsed timer / summary). */
+  sessionStartedAt: number | null;
   selectedExercise: Exercise | null;
   logs: SetLog[];
   history: WorkoutHistory[];
@@ -105,7 +130,14 @@ export const workoutInitialState: WorkoutState = {
   todayWorkout: null,
   todayWorkoutLoading: false,
   todayWorkoutError: null,
+  activePlanDayId: null,
+  planSessionCards: [],
+  lastPerformedByPlanDayId: {},
+  planSessionsLoading: false,
+  planSessionsError: null,
   selectedPlanId: null,
+  activePlanName: null,
+  sessionStartedAt: null,
   selectedExercise: null,
   logs: [],
   history: [],
@@ -225,16 +257,58 @@ function pickLastPerformanceLogs(
   return [];
 }
 
-export const setTodayWorkout = createAsyncThunk(
-  'workout/setTodayWorkout',
-  async (dayOfWeek: number, { getState, rejectWithValue }) => {
-    const state = getState() as AppState;
-    const selectedPlanId = state.workout.selectedPlanId;
-    const { dayPlan, error } = await fetchDayPlanForWeekday(dayOfWeek, selectedPlanId);
+export const loadPlanDayById = createAsyncThunk(
+  'workout/loadPlanDayById',
+  async (planDayId: string, { rejectWithValue }) => {
+    const { dayPlan, error } = await fetchPlanDayById(planDayId);
     if (error) {
       return rejectWithValue(error);
     }
+    if (!dayPlan) {
+      return rejectWithValue('Session not found.');
+    }
     return dayPlan;
+  },
+);
+
+export const fetchDashboardPlanSessions = createAsyncThunk(
+  'workout/fetchDashboardPlanSessions',
+  async (_, { getState, rejectWithValue }) => {
+    const state = getState() as AppState;
+    const userId = state.auth.session?.user.id;
+    if (!userId) {
+      return {
+        cards: [] as PlanSessionCard[],
+        lastPerformed: {} as Record<string, string>,
+        planName: null as string | null,
+      };
+    }
+    const selectedPlanId = state.workout.selectedPlanId;
+    const { planId, error: resolveErr } = await resolveActivePlanId(selectedPlanId);
+    if (resolveErr) {
+      return rejectWithValue(resolveErr);
+    }
+    if (!planId) {
+      return {
+        cards: [] as PlanSessionCard[],
+        lastPerformed: {} as Record<string, string>,
+        planName: null as string | null,
+      };
+    }
+    const { name: planName } = await fetchPlanName(planId);
+    const { sessions, error: sessionsErr } = await fetchPlanSessionsOverview(planId);
+    if (sessionsErr) {
+      return rejectWithValue(sessionsErr);
+    }
+    const ids = sessions.map(s => s.planDayId);
+    const { datesByPlanDayId, error: lastErr } = await fetchLastPerformedDatesForPlanDays(
+      userId,
+      ids,
+    );
+    if (lastErr) {
+      return rejectWithValue(lastErr);
+    }
+    return { cards: sessions, lastPerformed: datesByPlanDayId, planName };
   },
 );
 
@@ -294,6 +368,9 @@ export const completeSetLog = createAsyncThunk(
       return rejectWithValue('Exercise not found');
     }
 
+    const planDayId =
+      state.workout.activePlanDayId ?? state.workout.todayWorkout?.plan_day_id ?? null;
+
     const { data, error } = await supabase
       .from('workout_logs')
       .insert({
@@ -303,6 +380,7 @@ export const completeSetLog = createAsyncThunk(
         reps: payload.reps,
         weight: payload.weight,
         rpe: payload.rpe,
+        ...(planDayId ? { plan_day_id: planDayId } : {}),
       })
       .select('id')
       .single();
@@ -400,6 +478,9 @@ export const saveWorkout = createAsyncThunk(
       return true;
     }
 
+    const planDayId =
+      state.workout.activePlanDayId ?? state.workout.todayWorkout?.plan_day_id ?? null;
+
     const rows = logs.map(log => ({
       user_id: userId,
       exercise_name: log.exerciseName,
@@ -407,6 +488,7 @@ export const saveWorkout = createAsyncThunk(
       reps: log.reps,
       weight: log.weight,
       rpe: log.rpe ?? null,
+      ...(planDayId ? { plan_day_id: planDayId } : {}),
     }));
 
     const { error } = await supabase.from('workout_logs').insert(rows);
@@ -552,24 +634,49 @@ const workoutSlice = createSlice({
     clearSessionProgression(state) {
       state.sessionRecommendations = {};
       state.sessionDeload = false;
+      state.sessionStartedAt = null;
     },
   },
   extraReducers: builder => {
     builder
-      .addCase(setTodayWorkout.pending, state => {
+      .addCase(loadPlanDayById.pending, state => {
         state.todayWorkoutLoading = true;
         state.todayWorkoutError = null;
+        state.todayWorkout = null;
       })
-      .addCase(setTodayWorkout.fulfilled, (state, action) => {
+      .addCase(loadPlanDayById.fulfilled, (state, action) => {
         state.todayWorkout = action.payload;
+        state.activePlanDayId = action.payload.plan_day_id;
+        state.sessionStartedAt = Date.now();
         state.todayWorkoutLoading = false;
         state.todayWorkoutError = null;
         state.error = null;
       })
-      .addCase(setTodayWorkout.rejected, (state, action) => {
+      .addCase(loadPlanDayById.rejected, (state, action) => {
         state.todayWorkoutLoading = false;
         state.todayWorkout = null;
+        state.activePlanDayId = null;
+        state.sessionStartedAt = null;
         state.todayWorkoutError = (action.payload as string) ?? 'Could not load workout plan';
+      })
+      .addCase(fetchDashboardPlanSessions.pending, state => {
+        state.planSessionsLoading = true;
+        state.planSessionsError = null;
+      })
+      .addCase(fetchDashboardPlanSessions.fulfilled, (state, action) => {
+        state.planSessionsLoading = false;
+        state.planSessionCards = action.payload.cards;
+        state.lastPerformedByPlanDayId = action.payload.lastPerformed;
+        state.activePlanName = action.payload.planName ?? null;
+        state.planSessionsError = null;
+      })
+      .addCase(fetchDashboardPlanSessions.rejected, (state, action) => {
+        state.planSessionsLoading = false;
+        state.planSessionCards = [];
+        state.lastPerformedByPlanDayId = {};
+        state.activePlanName = null;
+        state.planSessionsError =
+          (action.payload as string) ?? 'Could not load plan sessions';
       })
       .addCase(selectExercise.fulfilled, (state, action) => {
         state.selectedExercise = action.payload;

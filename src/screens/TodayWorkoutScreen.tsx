@@ -1,31 +1,72 @@
-import { Box, Divider, HStack, Text, VStack } from '@gluestack-ui/themed';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { useEffect, useLayoutEffect } from 'react';
-import { ActivityIndicator, Pressable, ScrollView } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { useCallback, useEffect, useLayoutEffect, useState } from 'react';
+import {
+  ActivityIndicator,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
 
-import ExerciseCard from '../components/ExerciseCard';
+import { CrtScreen, HardwareButton, ProgressRow } from '../components/crt';
+import { hapticLight } from '../lib/haptics';
 import type { AppStackParamList } from '../navigation/AppNavigator';
 import { useAppDispatch, useAppSelector } from '../store';
-import { fetchProgressionForExercise, setTodayWorkout } from '../store/slices/workoutSlice';
+import {
+  fetchProgressionForExercise,
+  loadPlanDayById,
+  localDateKey,
+} from '../store/slices/workoutSlice';
 import type { Exercise } from '../store/slices/workoutSlice';
+import { colors, crt, fontFamily, spacing } from '../theme/theme';
 
 type Props = NativeStackScreenProps<AppStackParamList, 'TodayWorkout'>;
 
-export default function TodayWorkoutScreen({ navigation }: Props) {
+function ElapsedTimer() {
+  const sessionStartedAt = useAppSelector(s => s.workout.sessionStartedAt);
+  const [now, setNow] = useState(Date.now());
+  useEffect(() => {
+    const t = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(t);
+  }, []);
+  const sec =
+    sessionStartedAt != null ? Math.max(0, Math.floor((now - sessionStartedAt) / 1000)) : 0;
+  const mm = String(Math.floor(sec / 60)).padStart(2, '0');
+  const ss = String(sec % 60).padStart(2, '0');
+  return (
+    <Text style={timerStyles.t} accessibilityLabel={`Elapsed ${mm} minutes ${ss} seconds`}>
+      {mm}:{ss}
+    </Text>
+  );
+}
+
+const timerStyles = StyleSheet.create({
+  t: {
+    fontFamily: fontFamily.bold,
+    fontSize: 14,
+    letterSpacing: 2,
+    color: colors.accent,
+    fontVariant: ['tabular-nums'],
+  },
+});
+
+export default function TodayWorkoutScreen({ navigation, route }: Props) {
   const dispatch = useAppDispatch();
+  const { planDayId } = route.params;
   const plan = useAppSelector(s => s.workout.todayWorkout);
   const planLoading = useAppSelector(s => s.workout.todayWorkoutLoading);
   const planError = useAppSelector(s => s.workout.todayWorkoutError);
   const selectedPlanId = useAppSelector(s => s.workout.selectedPlanId);
-  const dow = new Date().getDay();
+  const logs = useAppSelector(s => s.workout.logs);
+  const [expandedId, setExpandedId] = useState<string | null>(null);
 
   useEffect(() => {
-    dispatch(setTodayWorkout(dow));
-  }, [dispatch, dow, selectedPlanId]);
+    dispatch(loadPlanDayById(planDayId));
+  }, [dispatch, planDayId, selectedPlanId]);
 
   useEffect(() => {
-    if (!plan?.exercises?.length) {
+    if (!plan?.exercises?.length || plan.plan_day_id !== planDayId) {
       return;
     }
     for (const ex of plan.exercises) {
@@ -36,116 +77,233 @@ export default function TodayWorkoutScreen({ navigation }: Props) {
         }),
       );
     }
-  }, [dispatch, plan?.day_name, plan?.exercises]);
+  }, [dispatch, plan?.plan_day_id, plan?.exercises, planDayId]);
+
+  const headerRight = useCallback(() => <ElapsedTimer />, []);
 
   useLayoutEffect(() => {
-    navigation.setOptions({
-      title: plan?.day_name ?? "Today's workout",
-    });
-  }, [navigation, plan?.day_name]);
+    if (plan?.session_type != null && plan.plan_day_id === planDayId) {
+      const title = `SESSION: ${plan.session_type}`.toUpperCase();
+      navigation.setOptions({
+        title,
+        headerTitle: title,
+        headerRight,
+      });
+    } else {
+      navigation.setOptions({
+        title: 'SESSION',
+        headerTitle: 'SESSION',
+        headerRight,
+      });
+    }
+  }, [navigation, plan?.plan_day_id, plan?.session_type, planDayId, headerRight]);
 
   const openExercise = (exercise: Exercise) => {
+    hapticLight();
     navigation.navigate('ExerciseLogging', { exercise });
   };
 
+  const setsDone = useCallback(
+    (exerciseId: string) =>
+      logs.filter(l => l.exerciseId === exerciseId && l.supabaseId).length,
+    [logs],
+  );
+
   if (planLoading) {
     return (
-      <SafeAreaView style={{ flex: 1 }} edges={['bottom']}>
-        <Box flex={1} justifyContent="center" alignItems="center" p="$6">
-          <ActivityIndicator />
-          <Text color="$textLight400" size="sm" mt="$3">
-            Loading today&apos;s plan…
-          </Text>
-        </Box>
-      </SafeAreaView>
+      <CrtScreen flicker={false}>
+        <View style={styles.centered}>
+          <ActivityIndicator color={colors.accent} />
+          <Text style={styles.muted}>LOADING SESSION…</Text>
+        </View>
+      </CrtScreen>
     );
   }
 
   if (planError) {
     return (
-      <SafeAreaView style={{ flex: 1 }} edges={['bottom']}>
-        <ScrollView contentContainerStyle={{ padding: 16 }}>
-          <Text color="$red400">{planError}</Text>
+      <CrtScreen flicker={false}>
+        <ScrollView contentContainerStyle={styles.pad}>
+          <Text style={styles.err}>{planError}</Text>
         </ScrollView>
-      </SafeAreaView>
+      </CrtScreen>
     );
   }
 
-  if (!plan) {
+  if (!plan || plan.plan_day_id !== planDayId) {
     return (
-      <SafeAreaView style={{ flex: 1 }} edges={['bottom']}>
-        <ScrollView contentContainerStyle={{ padding: 16 }}>
-          <Text color="$textLight300">No workout scheduled for today.</Text>
+      <CrtScreen flicker={false}>
+        <ScrollView contentContainerStyle={styles.pad}>
+          <Text style={styles.muted}>SESSION NOT FOUND.</Text>
         </ScrollView>
-      </SafeAreaView>
+      </CrtScreen>
     );
   }
+
+  const dateStr = localDateKey(new Date());
 
   return (
-    <SafeAreaView style={{ flex: 1 }} edges={['bottom']}>
-      <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 32 }}>
-        <VStack space="lg">
-          <VStack space="xs">
-            <Text color="$textLight400">{plan.focus}</Text>
-            <Text color="$textLight500" size="sm">
-              ~{plan.duration_minutes} minutes
-            </Text>
-          </VStack>
+    <CrtScreen flicker={false}>
+      <ScrollView contentContainerStyle={styles.pad}>
+        <Text style={styles.subHead}>
+          {dateStr} · {plan.exercises.length} MOVEMENTS
+        </Text>
 
-          <Box
-            bg="$backgroundDark800"
-            borderRadius="$lg"
-            p="$4"
-            borderWidth={1}
-            borderColor="$borderDark700">
-            <Text fontWeight="$bold" color="$textLight100" mb="$2">
-              Warmup
-            </Text>
-            <Text color="$textLight400" size="sm">
-              {plan.warmup}
-            </Text>
-          </Box>
+        <View style={styles.warmup}>
+          <Text style={styles.warmupLabel}>WARMUP</Text>
+          <Text style={styles.warmupBody}>{plan.warmup}</Text>
+          <Text style={styles.duration}>TARGET {plan.duration_minutes} MIN</Text>
+        </View>
 
-          <HStack justifyContent="space-between" alignItems="center" flexWrap="wrap">
-            <Text fontWeight="$bold" color="$textLight200" size="md">
-              Lifts
-            </Text>
-            <Pressable onPress={() => navigation.navigate('WorkoutSessionSummary')}>
-              <Text color="$blue400" size="sm">
-                Session summary
+        <View style={styles.rowBetween}>
+          <Text style={styles.section}>LIFTS</Text>
+          <Pressable onPress={() => navigation.navigate('WorkoutSessionSummary')}>
+            <Text style={styles.link}>SUMMARY</Text>
+          </Pressable>
+        </View>
+
+        {plan.exercises.map(exercise => {
+          const done = setsDone(exercise.id);
+          const expanded = expandedId === exercise.id;
+          const current = logs.find(
+            l => l.exerciseId === exercise.id && !l.supabaseId,
+          );
+          const w = current?.weight ?? null;
+          const r = current?.reps ?? null;
+          const rightMeta = `${exercise.sets} X ${exercise.rep_range} · LAST WT —`;
+          return (
+            <ProgressRow
+              key={exercise.id}
+              title={exercise.name}
+              subtitleRight={rightMeta}
+              setsLogged={done}
+              setsTotal={exercise.sets}
+              expanded={expanded}
+              onPress={() => {
+                hapticLight();
+                setExpandedId(expanded ? null : exercise.id);
+              }}>
+              <Text style={styles.expandHint}>
+                DRAFT {w != null ? `${w} KG` : '—'} · {r != null ? `${r} REPS` : '—'}
               </Text>
-            </Pressable>
-          </HStack>
-          <VStack space="md">
-            {plan.exercises.map(exercise => (
-              <ExerciseCard
-                key={exercise.id}
-                exercise={exercise}
+              <HardwareButton
+                label="Log sets"
                 onPress={() => openExercise(exercise)}
+                style={styles.panelBtn}
               />
-            ))}
-          </VStack>
+            </ProgressRow>
+          );
+        })}
 
-          <Divider my="$2" bg="$borderDark700" />
-
-          <Box
-            bg="$backgroundDark800"
-            borderRadius="$lg"
-            p="$4"
-            borderWidth={1}
-            borderColor="$borderDark700">
-            <Text fontWeight="$bold" color="$textLight100" mb="$2">
-              Cardio finisher — {plan.cardio_finisher.title}
-            </Text>
-            <Text color="$textLight400" size="sm" mb="$2">
-              {plan.cardio_finisher.duration_minutes} minutes
-            </Text>
-            <Text color="$textLight500" size="sm">
-              {plan.cardio_finisher.instructions}
-            </Text>
-          </Box>
-        </VStack>
+        <View style={styles.finisher}>
+          <Text style={styles.finisherLabel}>CARDIO FINISHER — {plan.cardio_finisher.title}</Text>
+          <Text style={styles.muted}>{plan.cardio_finisher.duration_minutes} MIN</Text>
+          <Text style={styles.finisherBody}>{plan.cardio_finisher.instructions}</Text>
+        </View>
       </ScrollView>
-    </SafeAreaView>
+    </CrtScreen>
   );
 }
+
+const styles = StyleSheet.create({
+  pad: {
+    paddingBottom: spacing(4),
+  },
+  centered: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: spacing(3),
+  },
+  muted: {
+    fontFamily: fontFamily.regular,
+    fontSize: 11,
+    color: colors.textMuted,
+    marginTop: spacing(1),
+    letterSpacing: 1,
+  },
+  err: {
+    fontFamily: fontFamily.regular,
+    color: colors.danger,
+    fontSize: 12,
+  },
+  subHead: {
+    fontFamily: fontFamily.regular,
+    fontSize: 10,
+    letterSpacing: 2,
+    color: colors.textMuted,
+    marginBottom: spacing(2),
+  },
+  warmup: {
+    borderWidth: 1,
+    borderColor: colors.borderSubtle,
+    padding: spacing(2),
+    marginBottom: spacing(2),
+    backgroundColor: colors.surface,
+  },
+  warmupLabel: {
+    fontFamily: fontFamily.bold,
+    fontSize: 10,
+    letterSpacing: crt.labelLetterSpacing,
+    color: colors.textMuted,
+    marginBottom: 8,
+  },
+  warmupBody: {
+    fontFamily: fontFamily.regular,
+    fontSize: 12,
+    color: colors.text,
+    lineHeight: 18,
+  },
+  duration: {
+    marginTop: spacing(1),
+    fontFamily: fontFamily.regular,
+    fontSize: 10,
+    color: colors.accentSecondary,
+  },
+  rowBetween: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: spacing(1),
+  },
+  section: {
+    fontFamily: fontFamily.bold,
+    fontSize: 12,
+    letterSpacing: 2,
+    color: colors.text,
+  },
+  link: {
+    fontFamily: fontFamily.regular,
+    fontSize: 10,
+    letterSpacing: 2,
+    color: colors.accent,
+  },
+  expandHint: {
+    fontFamily: fontFamily.regular,
+    fontSize: 11,
+    color: colors.textMuted,
+    marginBottom: spacing(2),
+  },
+  panelBtn: {
+    marginTop: spacing(1),
+  },
+  finisher: {
+    marginTop: spacing(2),
+    borderWidth: 1,
+    borderColor: colors.borderSubtle,
+    padding: spacing(2),
+  },
+  finisherLabel: {
+    fontFamily: fontFamily.bold,
+    fontSize: 11,
+    color: colors.text,
+    marginBottom: 4,
+  },
+  finisherBody: {
+    fontFamily: fontFamily.regular,
+    fontSize: 11,
+    color: colors.textMuted,
+    marginTop: spacing(1),
+    lineHeight: 16,
+  },
+});

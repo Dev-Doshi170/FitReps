@@ -250,6 +250,7 @@ export type Database = {
           date: string
           exercise_name: string
           id: string
+          plan_day_id: string | null
           reps: number | null
           rpe: string | null
           set_number: number
@@ -260,6 +261,7 @@ export type Database = {
           date?: string
           exercise_name: string
           id?: string
+          plan_day_id?: string | null
           reps?: number | null
           rpe?: string | null
           set_number: number
@@ -270,6 +272,7 @@ export type Database = {
           date?: string
           exercise_name?: string
           id?: string
+          plan_day_id?: string | null
           reps?: number | null
           rpe?: string | null
           set_number?: number

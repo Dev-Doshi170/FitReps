@@ -5,6 +5,7 @@
 -- After this file, apply normalized workout catalog DDL + seed data:
 --   1) supabase/workout_plans_schema.sql
 --   2) supabase/workout_plan_seed.sql
+--   3) supabase/migrations/*.sql (e.g. workout_logs.rpe, plan_day_id)
 -- Regenerate seed from JSON via: node scripts/generate-workout-plan-seed.mjs
 
 -- -----------------------------------------------------------------------------

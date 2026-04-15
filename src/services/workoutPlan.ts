@@ -162,16 +162,6 @@ export async function fetchPlanDetail(planId: string): Promise<{
   };
 }
 
-const JS_DAY_TO_NAME = [
-  'Sunday',
-  'Monday',
-  'Tuesday',
-  'Wednesday',
-  'Thursday',
-  'Friday',
-  'Saturday',
-] as const;
-
 type ExerciseRow = {
   id: string;
   name: string;
@@ -194,6 +184,7 @@ type PlanExerciseRow = {
 type PlanDayRow = {
   id: string;
   day: string;
+  type: string;
   focus: string;
   duration_minutes: number;
   warmup: string;
@@ -201,6 +192,53 @@ type PlanDayRow = {
   cardio_duration_minutes: number | null;
   cardio_instructions: string;
   plan_exercises: PlanExerciseRow[] | null;
+};
+
+/** Embedded select for a full `plan_days` row + exercises (used by weekday and by-id loaders). */
+const PLAN_DAY_DETAIL_SELECT = `
+  id,
+  day,
+  type,
+  focus,
+  duration_minutes,
+  warmup,
+  cardio_title,
+  cardio_duration_minutes,
+  cardio_instructions,
+  plan_exercises (
+    id,
+    sort_order,
+    sets,
+    reps,
+    exercises (
+      id,
+      name,
+      equipment,
+      type,
+      muscle_primary,
+      muscle_secondary,
+      notes
+    )
+  )
+`;
+
+/** Card data for the dashboard: one row per training session in a plan. */
+export type PlanSessionCard = {
+  planDayId: string;
+  sessionType: string;
+  focus: string;
+  exerciseNames: string[];
+};
+
+type PlanDayOverviewRow = {
+  id: string;
+  day: string;
+  type: string;
+  focus: string;
+  plan_exercises: {
+    sort_order: number;
+    exercises: { name: string } | { name: string }[] | null;
+  }[] | null;
 };
 
 function isExerciseType(t: string): t is ExerciseType {
@@ -243,6 +281,8 @@ function mapPlanDayToDayPlan(row: PlanDayRow): DayPlan {
   });
 
   return {
+    plan_day_id: row.id,
+    session_type: row.type,
     day_name: row.day,
     focus: row.focus,
     duration_minutes: row.duration_minutes,
@@ -257,82 +297,143 @@ function mapPlanDayToDayPlan(row: PlanDayRow): DayPlan {
 }
 
 /**
- * Loads the scheduled day for the given plan (or the default plan by name when `selectedPlanId` is null).
- * Weekend (Sat/Sun) → no session (`dayPlan: null`, `error: null`).
+ * Resolves the plan UUID for API calls: explicit selection, or default seeded plan by name.
  */
-export async function fetchDayPlanForWeekday(
-  dayOfWeek: number,
-  selectedPlanId?: string | null,
-): Promise<{
-  dayPlan: DayPlan | null;
+/** Display name for dashboard status strip. */
+export async function fetchPlanName(planId: string): Promise<{
+  name: string | null;
   error: string | null;
 }> {
-  if (dayOfWeek === 0 || dayOfWeek === 6) {
-    return { dayPlan: null, error: null };
+  const { data, error } = await supabase.from('plans').select('name').eq('id', planId).maybeSingle();
+  if (error) {
+    return { name: null, error: error.message };
   }
-  const dayName = JS_DAY_TO_NAME[dayOfWeek];
+  return { name: (data?.name as string | undefined) ?? null, error: null };
+}
 
-  let planId: string;
-
+export async function resolveActivePlanId(
+  selectedPlanId: string | null | undefined,
+): Promise<{ planId: string | null; error: string | null }> {
   if (selectedPlanId) {
-    planId = selectedPlanId;
-  } else {
-    const { data: planRow, error: planErr } = await supabase
-      .from('plans')
-      .select('id')
-      .eq('name', DEFAULT_PLAN_NAME)
-      .maybeSingle();
-
-    if (planErr) {
-      return { dayPlan: null, error: planErr.message };
-    }
-    if (!planRow) {
-      return {
-        dayPlan: null,
-        error: `Workout plan "${DEFAULT_PLAN_NAME}" was not found. Run the SQL seed in Supabase.`,
-      };
-    }
-    planId = planRow.id;
+    return { planId: selectedPlanId, error: null };
   }
+  const { data: planRow, error: planErr } = await supabase
+    .from('plans')
+    .select('id')
+    .eq('name', DEFAULT_PLAN_NAME)
+    .maybeSingle();
 
+  if (planErr) {
+    return { planId: null, error: planErr.message };
+  }
+  if (!planRow?.id) {
+    return {
+      planId: null,
+      error: `Workout plan "${DEFAULT_PLAN_NAME}" was not found. Run the SQL seed in Supabase.`,
+    };
+  }
+  return { planId: planRow.id as string, error: null };
+}
+
+/**
+ * Lightweight list of sessions in a plan (for dashboard cards), in weekday-slot order.
+ */
+export async function fetchPlanSessionsOverview(planId: string): Promise<{
+  sessions: PlanSessionCard[];
+  error: string | null;
+}> {
   const { data, error } = await supabase
     .from('plan_days')
     .select(
       `
       id,
       day,
+      type,
       focus,
-      duration_minutes,
-      warmup,
-      cardio_title,
-      cardio_duration_minutes,
-      cardio_instructions,
       plan_exercises (
-        id,
         sort_order,
-        sets,
-        reps,
         exercises (
-          id,
-          name,
-          equipment,
-          type,
-          muscle_primary,
-          muscle_secondary,
-          notes
+          name
         )
       )
     `,
     )
-    .eq('plan_id', planId)
-    .eq('day', dayName)
+    .eq('plan_id', planId);
+
+  if (error) {
+    return { sessions: [], error: error.message };
+  }
+
+  const sorted = [...(data ?? [])].sort((a, b) => {
+    const ar = a as PlanDayOverviewRow;
+    const br = b as PlanDayOverviewRow;
+    const ai = WEEKDAY_ORDER.indexOf(ar.day as (typeof WEEKDAY_ORDER)[number]);
+    const bi = WEEKDAY_ORDER.indexOf(br.day as (typeof WEEKDAY_ORDER)[number]);
+    return (ai === -1 ? 99 : ai) - (bi === -1 ? 99 : bi);
+  });
+
+  const sessions: PlanSessionCard[] = sorted.map(r => {
+    const row = r as PlanDayOverviewRow;
+    const list = [...(row.plan_exercises ?? [])].sort((x, y) => x.sort_order - y.sort_order);
+    const exerciseNames = list.map(pe => unwrapExerciseName(pe.exercises) ?? 'Exercise');
+    return {
+      planDayId: row.id,
+      sessionType: row.type,
+      focus: row.focus,
+      exerciseNames,
+    };
+  });
+
+  return { sessions, error: null };
+}
+
+/** Latest log timestamp per `plan_day_id` (ISO string from Supabase). */
+export async function fetchLastPerformedDatesForPlanDays(
+  userId: string,
+  planDayIds: string[],
+): Promise<{ datesByPlanDayId: Record<string, string>; error: string | null }> {
+  if (planDayIds.length === 0) {
+    return { datesByPlanDayId: {}, error: null };
+  }
+
+  const { data, error } = await supabase
+    .from('workout_logs')
+    .select('plan_day_id, date')
+    .eq('user_id', userId)
+    .in('plan_day_id', planDayIds)
+    .order('date', { ascending: false })
+    .limit(4000);
+
+  if (error) {
+    return { datesByPlanDayId: {}, error: error.message };
+  }
+
+  const datesByPlanDayId: Record<string, string> = {};
+  for (const raw of data ?? []) {
+    const row = raw as { plan_day_id: string | null; date: string };
+    if (!row.plan_day_id || datesByPlanDayId[row.plan_day_id]) {
+      continue;
+    }
+    datesByPlanDayId[row.plan_day_id] = row.date;
+  }
+  return { datesByPlanDayId, error: null };
+}
+
+export async function fetchPlanDayById(planDayId: string): Promise<{
+  dayPlan: DayPlan | null;
+  error: string | null;
+}> {
+  const { data, error } = await supabase
+    .from('plan_days')
+    .select(PLAN_DAY_DETAIL_SELECT)
+    .eq('id', planDayId)
     .maybeSingle();
 
   if (error) {
     return { dayPlan: null, error: error.message };
   }
   if (!data) {
-    return { dayPlan: null, error: null };
+    return { dayPlan: null, error: 'Session not found.' };
   }
 
   try {
@@ -342,3 +443,4 @@ export async function fetchDayPlanForWeekday(
     return { dayPlan: null, error: msg };
   }
 }
+

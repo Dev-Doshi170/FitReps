@@ -72,8 +72,19 @@ jest.mock('react-native-gesture-handler', () => {
   return {
     GestureHandlerRootView: ({ children, style, ...props }) =>
       React.createElement(View, { style, ...props }, children),
+    Swipeable: ({ children }) => children,
   };
 });
+
+jest.mock('react-native-linear-gradient', () => {
+  const React = require('react');
+  const { View } = require('react-native');
+  return ({ children, ...props }) => React.createElement(View, props, children);
+});
+
+jest.mock('react-native-haptic-feedback', () => ({
+  trigger: jest.fn(),
+}));
 
 jest.mock('@react-native-async-storage/async-storage', () => {
   const store = new Map();

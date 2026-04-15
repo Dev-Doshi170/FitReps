@@ -62,7 +62,18 @@ function migrateWorkoutShape(state: PersistedState): PersistedState {
       bodyWeightError: w.bodyWeightError ?? null,
       todayWorkoutLoading: typeof w.todayWorkoutLoading === 'boolean' ? w.todayWorkoutLoading : false,
       todayWorkoutError: w.todayWorkoutError ?? null,
+      activePlanDayId: typeof w.activePlanDayId === 'string' ? w.activePlanDayId : null,
+      planSessionCards: Array.isArray(w.planSessionCards) ? w.planSessionCards : [],
+      lastPerformedByPlanDayId:
+        w.lastPerformedByPlanDayId && typeof w.lastPerformedByPlanDayId === 'object'
+          ? w.lastPerformedByPlanDayId
+          : {},
+      planSessionsLoading: typeof w.planSessionsLoading === 'boolean' ? w.planSessionsLoading : false,
+      planSessionsError: w.planSessionsError ?? null,
       selectedPlanId: typeof w.selectedPlanId === 'string' ? w.selectedPlanId : null,
+      activePlanName: typeof w.activePlanName === 'string' ? w.activePlanName : null,
+      sessionStartedAt:
+        typeof w.sessionStartedAt === 'number' ? w.sessionStartedAt : null,
     },
   } as PersistedState;
 }
@@ -70,7 +81,7 @@ function migrateWorkoutShape(state: PersistedState): PersistedState {
 const persistConfig = {
   key: 'root',
   /** Bump when `migrateWorkoutShape` must run again for already-persisted clients. */
-  version: 3,
+  version: 5,
   storage: AsyncStorage,
   whitelist: ['auth', 'workout'],
   migrate: (state: PersistedState) => Promise.resolve(migrateWorkoutShape(state)),

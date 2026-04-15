@@ -1,13 +1,9 @@
-import { Box, HStack, Text, VStack } from '@gluestack-ui/themed';
 import { useNavigation } from '@react-navigation/native';
-import type {
-  NativeStackNavigationProp,
-  NativeStackScreenProps,
-} from '@react-navigation/native-stack';
+import type { NativeStackNavigationProp, NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, Pressable, ScrollView } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
+import { CrtScreen } from '../components/crt';
 import type { AppStackParamList } from '../navigation/AppNavigator';
 import {
   DEFAULT_PLAN_NAME,
@@ -15,9 +11,9 @@ import {
   type WorkoutPlanSummary,
 } from '../services/workoutPlan';
 import { useAppSelector } from '../store';
+import { colors, fontFamily, spacing } from '../theme/theme';
 
 type Props = NativeStackScreenProps<AppStackParamList, 'WorkoutPlans'>;
-
 type PlansNav = NativeStackNavigationProp<AppStackParamList, 'WorkoutPlans'>;
 
 export default function WorkoutPlansScreen(_props: Props) {
@@ -68,84 +64,124 @@ export default function WorkoutPlansScreen(_props: Props) {
   );
 
   return (
-    <SafeAreaView style={{ flex: 1 }} edges={['bottom']}>
-      <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 32 }}>
-        <VStack space="lg">
-          <Text size="2xl" fontWeight="$bold" color="$textLight50">
-            Workout plans
-          </Text>
-          <Text color="$textLight500" size="sm">
-            Tap a plan to see the split (Push, Pull, Legs, etc.) and every exercise. The active plan
-            is highlighted; set it from the plan detail screen.
-          </Text>
+    <CrtScreen flicker={false}>
+      <ScrollView contentContainerStyle={styles.pad}>
+        <Text style={styles.body}>
+          SELECT A PROGRAM. ACTIVE PLAN IS MARKED. SET ACTIVE FROM DETAIL VIEW.
+        </Text>
 
-          {loading ? (
-            <HStack space="sm" alignItems="center">
-              <ActivityIndicator />
-              <Text color="$textLight400" size="sm">
-                Loading plans…
+        {loading ? (
+          <View style={styles.row}>
+            <ActivityIndicator color={colors.accent} />
+            <Text style={styles.muted}>LOADING…</Text>
+          </View>
+        ) : null}
+
+        {error ? <Text style={styles.err}>{error}</Text> : null}
+
+        {!loading && !error && plans.length === 0 ? (
+          <Text style={styles.muted}>NO PLANS IN DATABASE.</Text>
+        ) : null}
+
+        {plans.map(plan => {
+          const isSelected = effectiveSelectedId === plan.id;
+          return (
+            <Pressable
+              key={plan.id}
+              onPress={() => openPlanDetail(plan)}
+              style={[styles.card, isSelected && styles.cardOn]}>
+              <View style={styles.cardTop}>
+                <Text style={styles.planName}>{plan.name.toUpperCase()}</Text>
+                {isSelected ? (
+                  <View style={styles.badge}>
+                    <Text style={styles.badgeText}>ACTIVE</Text>
+                  </View>
+                ) : null}
+              </View>
+              <Text style={styles.meta}>{plan.goal}</Text>
+              <Text style={styles.small}>
+                {plan.level} · {plan.days_per_week} D/WK
               </Text>
-            </HStack>
-          ) : null}
-
-          {error ? (
-            <Text color="$red400" size="sm">
-              {error}
-            </Text>
-          ) : null}
-
-          {!loading && !error && plans.length === 0 ? (
-            <Text color="$textLight500">No plans found. Seed your database with a workout plan.</Text>
-          ) : null}
-
-          <VStack space="md">
-            {plans.map(plan => {
-              const isSelected = effectiveSelectedId === plan.id;
-              return (
-                <Pressable
-                  key={plan.id}
-                  onPress={() => openPlanDetail(plan)}
-                  accessibilityRole="button"
-                  accessibilityState={{ selected: isSelected }}
-                  accessibilityHint="Opens session breakdown and exercises">
-                  <Box
-                    bg={isSelected ? '$backgroundDark700' : '$backgroundDark800'}
-                    borderRadius="$lg"
-                    p="$4"
-                    borderWidth={2}
-                    borderColor={isSelected ? '$blue500' : '$borderDark700'}>
-                    <HStack justifyContent="space-between" alignItems="flex-start" space="md">
-                      <VStack space="xs" flex={1}>
-                        <Text color="$textLight50" fontWeight="$bold" size="lg">
-                          {plan.name}
-                        </Text>
-                        <Text color="$textLight400" size="sm">
-                          {plan.goal}
-                        </Text>
-                        <HStack space="md" flexWrap="wrap">
-                          <Text color="$textLight500" size="xs">
-                            Level: {plan.level}
-                          </Text>
-                          <Text color="$textLight500" size="xs">
-                            {plan.days_per_week} days / week
-                          </Text>
-                        </HStack>
-                      </VStack>
-                      {isSelected ? (
-                        <Box bg="$blue600" px="$2" py="$1" borderRadius="$sm">
-                          <Text size="xs" fontWeight="$bold" color="$textLight0">
-                            Selected
-                          </Text>
-                        </Box>
-                      ) : null}
-                    </HStack>
-                  </Box>
-                </Pressable>
-              );
-            })}
-          </VStack>
-        </VStack>
+            </Pressable>
+          );
+        })}
       </ScrollView>
-    </SafeAreaView>
+    </CrtScreen>
   );
 }
+
+const styles = StyleSheet.create({
+  pad: {
+    paddingBottom: spacing(4),
+  },
+  body: {
+    fontFamily: fontFamily.regular,
+    fontSize: 11,
+    color: colors.textMuted,
+    marginBottom: spacing(2),
+    lineHeight: 16,
+  },
+  row: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: spacing(2),
+  },
+  muted: {
+    fontFamily: fontFamily.regular,
+    fontSize: 11,
+    color: colors.textMuted,
+  },
+  err: {
+    fontFamily: fontFamily.regular,
+    fontSize: 11,
+    color: colors.danger,
+    marginBottom: spacing(1),
+  },
+  card: {
+    borderWidth: 1,
+    borderColor: colors.borderSubtle,
+    padding: spacing(2),
+    marginBottom: spacing(1.5),
+    backgroundColor: colors.surface,
+  },
+  cardOn: {
+    borderColor: colors.accent,
+    backgroundColor: colors.activeTint,
+  },
+  cardTop: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 6,
+  },
+  planName: {
+    fontFamily: fontFamily.bold,
+    fontSize: 14,
+    color: colors.text,
+    flex: 1,
+  },
+  badge: {
+    borderWidth: 1,
+    borderColor: colors.accent,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+  },
+  badgeText: {
+    fontFamily: fontFamily.bold,
+    fontSize: 9,
+    letterSpacing: 1,
+    color: colors.accent,
+  },
+  meta: {
+    fontFamily: fontFamily.regular,
+    fontSize: 11,
+    color: colors.textMuted,
+  },
+  small: {
+    fontFamily: fontFamily.regular,
+    fontSize: 10,
+    color: colors.textMuted,
+    marginTop: 4,
+  },
+});

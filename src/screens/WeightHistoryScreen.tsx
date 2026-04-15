@@ -1,16 +1,14 @@
-import { HStack, Text, VStack } from '@gluestack-ui/themed';
 import { useCallback, useEffect, useMemo } from 'react';
-import { FlatList } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { FlatList, StyleSheet, Text, View } from 'react-native';
 
+import { CrtScreen } from '../components/crt';
 import { useAppDispatch, useAppSelector } from '../store';
 import { fetchBodyWeightHistory } from '../store/slices/workoutSlice';
 import type { BodyWeightEntry } from '../store/slices/workoutSlice';
+import { colors, fontFamily, spacing } from '../theme/theme';
 
-function formatDateWithWeekday(dateKey: string): string {
-  const d = new Date(`${dateKey}T12:00:00`);
-  const weekday = d.toLocaleDateString(undefined, { weekday: 'long' });
-  return `${dateKey} (${weekday})`;
+function formatDate(dateKey: string): string {
+  return dateKey;
 }
 
 export default function WeightHistoryScreen() {
@@ -25,36 +23,23 @@ export default function WeightHistoryScreen() {
 
   const listHeader = useMemo(
     () => (
-      <VStack space="md" pb="$4">
-        {loading ? <Text color="$textLight400">Loading…</Text> : null}
-        {error ? (
-          <Text color="$red400" size="sm">
-            {error}
-          </Text>
-        ) : null}
+      <View style={styles.header}>
+        {loading ? <Text style={styles.muted}>LOADING…</Text> : null}
+        {error ? <Text style={styles.err}>{error}</Text> : null}
         {!loading && entries.length === 0 && !error ? (
-          <Text color="$textLight500">No weight entries yet. Log today’s weight on the Dashboard.</Text>
+          <Text style={styles.muted}>NO MASS ENTRIES.</Text>
         ) : null}
-      </VStack>
+      </View>
     ),
     [loading, error, entries.length],
   );
 
   const renderRow = useCallback(
     ({ item }: { item: BodyWeightEntry }) => (
-      <HStack
-        borderBottomWidth={1}
-        borderColor="$borderDark700"
-        py="$3"
-        justifyContent="space-between"
-        alignItems="center">
-        <Text color="$textLight200" flex={1}>
-          {formatDateWithWeekday(item.date)}
-        </Text>
-        <Text color="$textLight50" fontWeight="$semibold">
-          {item.weight}
-        </Text>
-      </HStack>
+      <View style={styles.row}>
+        <Text style={styles.left}>{formatDate(item.date)}</Text>
+        <Text style={styles.right}>{item.weight} KG</Text>
+      </View>
     ),
     [],
   );
@@ -62,15 +47,51 @@ export default function WeightHistoryScreen() {
   const keyExtractor = useCallback((item: BodyWeightEntry) => item.date, []);
 
   return (
-    <SafeAreaView style={{ flex: 1 }} edges={['bottom']}>
+    <CrtScreen flicker={false}>
       <FlatList
         data={entries}
         keyExtractor={keyExtractor}
         renderItem={renderRow}
         ListHeaderComponent={listHeader}
-        contentContainerStyle={{ padding: 16, paddingBottom: 32 }}
+        contentContainerStyle={styles.list}
         keyboardShouldPersistTaps="handled"
       />
-    </SafeAreaView>
+    </CrtScreen>
   );
 }
+
+const styles = StyleSheet.create({
+  list: {
+    paddingBottom: spacing(4),
+  },
+  header: {
+    marginBottom: spacing(2),
+  },
+  muted: {
+    fontFamily: fontFamily.regular,
+    fontSize: 11,
+    color: colors.textMuted,
+  },
+  err: {
+    fontFamily: fontFamily.regular,
+    fontSize: 11,
+    color: colors.danger,
+  },
+  row: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    borderBottomWidth: 1,
+    borderBottomColor: colors.borderSubtle,
+    paddingVertical: spacing(1.5),
+  },
+  left: {
+    fontFamily: fontFamily.regular,
+    fontSize: 12,
+    color: colors.text,
+  },
+  right: {
+    fontFamily: fontFamily.bold,
+    fontSize: 12,
+    color: colors.accent,
+  },
+});

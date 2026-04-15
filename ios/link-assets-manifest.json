@@ -1,0 +1,13 @@
+{
+  "migIndex": 1,
+  "data": [
+    {
+      "path": "assets/fonts/JetBrainsMono-Bold.ttf",
+      "sha1": "a2ca1bc6bb575ac125d9eaf338aa9a5af56bc377"
+    },
+    {
+      "path": "assets/fonts/JetBrainsMono-Regular.ttf",
+      "sha1": "898ddb2e35ec8bc699c86d0a5e26da10a32a2600"
+    }
+  ]
+}
