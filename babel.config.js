@@ -25,6 +25,8 @@ module.exports = function (api) {
           allowlist: ['SUPABASE_URL', 'SUPABASE_ANON_KEY'],
         },
       ],
+      'react-native-worklets-core/plugin',
+      // Reanimated docs: this plugin must be last.
       'react-native-reanimated/plugin',
     ],
   };

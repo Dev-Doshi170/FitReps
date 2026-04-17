@@ -1,4 +1,4 @@
-# Resolve react_native_pods.rb with node to allow for hoisting
+
 require Pod::Executable.execute_command('node', ['-p',
   'require.resolve(
     "react-native/scripts/react_native_pods.rb",
@@ -8,27 +8,32 @@ require Pod::Executable.execute_command('node', ['-p',
 platform :ios, min_ios_version_supported
 prepare_react_native_project!
 
-linkage = ENV['USE_FRAMEWORKS']
-if linkage != nil
-  Pod::UI.puts "Configuring Pod with #{linkage}ally linked Frameworks".green
-  use_frameworks! :linkage => linkage.to_sym
-end
 
 target 'FitReps' do
   config = use_native_modules!
 
   use_react_native!(
     :path => config[:reactNativePath],
-    # An absolute path to your application root.
+    :hermes_enabled => true,
     :app_path => "#{Pod::Config.instance.installation_root}/.."
   )
+
+  pod 'TensorFlowLiteSwift', '~> 2.17.0'
+  pod 'TensorFlowLiteSelectTfOps', '~> 2.17.0'
 
   post_install do |installer|
     react_native_post_install(
       installer,
       config[:reactNativePath],
-      :mac_catalyst_enabled => false,
-      # :ccache_enabled => true
+      :mac_catalyst_enabled => false
     )
+
+    # RN pods (e.g. Reanimated) import React headers from a framework target;
+    # Clang treats that as non-modular unless this is allowed.
+    installer.pods_project.targets.each do |target|
+      target.build_configurations.each do |build_config|
+        build_config.build_settings['CLANG_ALLOW_NON_MODULAR_INCLUDES_IN_FRAMEWORK_MODULES'] = 'YES'
+      end
+    end
   end
 end

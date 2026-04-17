@@ -1,4 +1,14 @@
-jest.mock('react-native-reanimated', () => require('react-native-reanimated/mock'));
+jest.mock('react-native-reanimated', () => ({
+  runOnJS: fn => fn,
+  useSharedValue: init => ({ value: init }),
+  default: {
+    createAnimatedComponent: c => c,
+  },
+}));
+
+jest.mock('react-native-worklets-core', () => ({
+  useRunOnJS: fn => fn,
+}));
 
 jest.mock('./src/services/supabase', () => {
   const emptyRows = Promise.resolve({ data: [], error: null });
