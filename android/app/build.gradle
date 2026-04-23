@@ -2,6 +2,44 @@ apply plugin: "com.android.application"
 apply plugin: "org.jetbrains.kotlin.android"
 apply plugin: "com.facebook.react"
 
+project.ext.react = [
+    nodeExecutableAndArgs: ["/usr/local/bin/node"]
+]
+
+// Reanimated reads this from the app module (`safeAppExtGet`); without it Gradle runs `node` and fails when PATH has no node (e.g. Android Studio + nvm).
+ext {
+    REACT_NATIVE_NODE_MODULES_DIR = file("${rootProject.projectDir}/../node_modules/react-native").absolutePath
+}
+
+// def resolveReactNativeNodeBinary() {
+//     def fromEnv = System.getenv("NODE_BINARY")
+//     if (fromEnv != null && !fromEnv.isEmpty()) {
+//         def f = new File(fromEnv)
+//         if (f.exists()) {
+//             return f.absolutePath
+//         }
+//     }
+//     def localPropsFile = rootProject.file("local.properties")
+//     if (localPropsFile.exists()) {
+//         def p = new Properties()
+//         localPropsFile.withInputStream { p.load(it) }
+//         def prop = p.getProperty("node.executable")
+//         if (prop != null && !prop.trim().isEmpty()) {
+//             def f = new File(prop.trim())
+//             if (f.exists()) {
+//                 return f.absolutePath
+//             }
+//         }
+//     }
+//     for (def candidate : ["/opt/homebrew/bin/node", "/usr/local/bin/node", "/usr/bin/node"]) {
+//         def f = new File(candidate)
+//         if (f.exists()) {
+//             return f.absolutePath
+//         }
+//     }
+//     return "node"
+// }
+
 /**
  * This is the configuration block to customize your React Native Android app.
  * By default you don't need to apply any configuration, just uncomment the lines you need.
@@ -24,8 +62,8 @@ react {
     // debuggableVariants = ["liteDebug", "liteDebugOptimized", "prodDebug", "prodDebugOptimized"]
 
     /* Bundling */
-    //   A list containing the node command and its flags. Default is just 'node'.
-    // nodeExecutableAndArgs = ["node"]
+    // Propagates to RN codegen (e.g. VisionCamera) when Android Studio's Gradle has no `node` on PATH.
+    // nodeExecutableAndArgs = [resolveReactNativeNodeBinary()]
     //
     //   The command to run when bundling. By default is 'bundle'
     // bundleCommand = "ram-bundle"
@@ -85,6 +123,13 @@ android {
         versionCode 1
         versionName "1.0"
     }
+
+ packagingOptions {
+        pickFirst '**/*.so'
+        pickFirst '**/*.json'
+        pickFirst '**/*.txt'
+    }
+
     signingConfigs {
         debug {
             storeFile file('debug.keystore')

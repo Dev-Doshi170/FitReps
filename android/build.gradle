@@ -18,4 +18,9 @@ buildscript {
     }
 }
 
+// RNGH resolves react-native via `node` unless this is set; Gradle from Android Studio often lacks nvm/PATH.
+ext {
+    REACT_NATIVE_NODE_MODULES_DIR = file("${rootDir}/../node_modules/react-native").absolutePath
+}
+
 apply plugin: "com.facebook.react.rootproject"

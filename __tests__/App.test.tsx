@@ -21,18 +21,6 @@ jest.mock('react-native-vision-camera', () => ({
   runAtTargetFps: (_fps: number, fn: () => void) => fn(),
 }));
 
-jest.mock('../src/hooks/usePoseDetection', () => ({
-  usePoseDetection: () => ({
-    detector: null,
-    angle: 0,
-    stage: 'up',
-    counter: 0,
-    tfReady: true,
-    processFrame: jest.fn(),
-    setCounter: jest.fn(),
-  }),
-}));
-
 test('renders correctly', async () => {
   await ReactTestRenderer.act(async () => {
     ReactTestRenderer.create(<App />);

@@ -109,12 +109,62 @@ darwin=false
 nonstop=false
 case "$( uname )" in                #(
   CYGWIN* )         cygwin=true  ;; #(
-  Darwin* )         darwin=true  ;; #(
+  Darwin* )         darwin=true
+                      # Android Studio often launches Gradle with a minimal PATH; Reanimated/Worklets call `node` by name.
+                      PATH="/opt/homebrew/bin:/usr/local/bin:${PATH:-}"
+                      export PATH
+                      ;; #(
+  Linux* )          PATH="/usr/local/bin:/usr/bin:${PATH:-}"
+                      export PATH
+                      ;; #(
   MSYS* | MINGW* )  msys=true    ;; #(
   NONSTOP* )        nonstop=true ;;
 esac
 
+# If NODE_BINARY is not in the environment, read it from gradle.properties (same key as RN docs).
+# Gradle itself does not export gradle.properties into the process environment for child `node` execs.
+if [ -z "${NODE_BINARY:-}" ] && [ -r "$APP_HOME/gradle.properties" ]; then
+  _node_prop=$(grep -E '^[[:space:]]*NODE_BINARY[[:space:]]*=' "$APP_HOME/gradle.properties" 2>/dev/null | tail -n 1 || true)
+  if [ -n "$_node_prop" ]; then
+    NODE_BINARY=${_node_prop#*=}
+    NODE_BINARY=$(printf '%s' "$NODE_BINARY" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//' -e 's/^"//' -e 's/"$//' -e "s/^'//" -e "s/'$//")
+    export NODE_BINARY
+  fi
+fi
 
+# Node from nvm is often missing when Gradle is started from Android Studio (non-login shell).
+# react-native-reanimated runs `providers.exec { commandLine("node", ...) }`, which needs `node` on PATH.
+if [ -n "${NODE_BINARY:-}" ] && [ -x "${NODE_BINARY}" ]; then
+  PATH="$(dirname "${NODE_BINARY}"):${PATH:-}"
+  export PATH
+elif [ -n "${HOME:-}" ]; then
+  _nvm_default="${HOME}/.nvm/alias/default"
+  if [ -L "$_nvm_default" ]; then
+    _nvm_target=$(readlink "$_nvm_default")
+    if [ -n "$_nvm_target" ]; then
+      case "$_nvm_target" in
+        /*) _nvm_home="$_nvm_target" ;;
+        *) _nvm_home=$(CDPATH= cd "$(dirname "$_nvm_default")" && cd "$_nvm_target" && pwd) ;;
+      esac
+      if [ -x "${_nvm_home}/bin/node" ]; then
+        PATH="${_nvm_home}/bin:${PATH:-}"
+        export PATH
+      fi
+    fi
+  elif [ -f "$_nvm_default" ]; then
+    _ver=$(tr -d '[:space:]' < "$_nvm_default" 2>/dev/null || echo "")
+    if [ -n "$_ver" ]; then
+      case "$_ver" in
+        v*) ;;
+        *) _ver="v${_ver}" ;;
+      esac
+      if [ -x "${HOME}/.nvm/versions/node/${_ver}/bin/node" ]; then
+        PATH="${HOME}/.nvm/versions/node/${_ver}/bin:${PATH:-}"
+        export PATH
+      fi
+    fi
+  fi
+fi
 
 # Determine the Java command to use to start the JVM.
 if [ -n "$JAVA_HOME" ] ; then

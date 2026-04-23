@@ -2,7 +2,6 @@
  * @format
  */
 
-import './src/tf/setupTfjsPlatform';
 import React from 'react';
 import { StatusBar, StyleSheet } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
