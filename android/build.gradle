@@ -1,3 +1,6 @@
+// Fix for Android Studio not finding node (nvm / PATH issues)
+System.setProperty("node.binary", project.findProperty("NODE_BINARY") ?: "/usr/local/bin/node")
+
 buildscript {
     ext {
         buildToolsVersion = "36.0.0"

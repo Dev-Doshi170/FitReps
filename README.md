@@ -62,6 +62,41 @@ If everything is set up correctly, you should see your new app running in the An
 
 This is one way to run your app — you can also build it directly from Android Studio or Xcode.
 
+## Android Setup (Required before opening in Android Studio)
+
+### Prerequisites
+
+- Node.js installed at `/usr/local/bin/node` (or update `NODE_BINARY` in `android/gradle.properties`)
+- Android Studio with NDK 27.1.12297006 and SDK installed
+- JDK 17
+
+### First time setup
+
+```bash
+# 1. Install dependencies
+npm install
+
+# 2. REQUIRED: Build native modules from terminal first
+# (Android Studio cannot do this on its own)
+cd android
+./gradlew assembleDebug
+```
+
+### Running
+
+After the terminal build succeeds:
+
+- Open Android Studio and press **Run ▶️** directly
+- Do **not** use Build → Clean Project (it deletes generated native files)
+- If you get CMake errors in Android Studio, run `./gradlew assembleDebug` from terminal again
+
+### Every time after `npm install` or adding new packages
+
+```bash
+cd android
+./gradlew assembleDebug
+```
+
 ## Step 3: Modify your app
 
 Now that you have successfully run the app, let's make changes!
