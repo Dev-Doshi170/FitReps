@@ -1,6 +1,8 @@
 import { createAsyncThunk, createSlice, type PayloadAction } from '@reduxjs/toolkit';
 import type { ProgressionRecommendation, ProgressionState } from '../../lib/progressionTypes';
-import { applyProgressionFromEdge, getProgressionState } from '../../lib/progressionService';
+import { suggestInitialLoad, type GymExperience } from '../../lib/initialLoadSuggestion';
+import { applyProgressionFromEdge, getLastWorkoutLogs, getProgressionState } from '../../lib/progressionService';
+import { localDateKey } from '../../lib/localDateKey';
 import { parsePlanRepsString } from '../../lib/repRange';
 import {
   fetchLastPerformedDatesForPlanDays,
@@ -10,8 +12,9 @@ import {
   resolveActivePlanId,
   type PlanSessionCard,
 } from '../../services/workoutPlan';
+import { fetchUserProfileRow, saveOnboardingProfile, type UserProfile } from '../../services/userProfile';
 import { supabase } from '../../services/supabase';
-import type { AuthState } from './authSlice';
+import { logoutUser, type AuthState } from './authSlice';
 
 export type ExerciseType = 'Compound' | 'Isolation' | 'Isometric';
 
@@ -80,6 +83,8 @@ export type BodyWeightEntry = {
   weight: number;
 };
 
+export type StartLoadHint = { weight: number | null; reps: number };
+
 export type WorkoutState = {
   todayWorkout: DayPlan | null;
   /** Loading today's plan from Supabase (plans / plan_days / plan_exercises). */
@@ -109,6 +114,11 @@ export type WorkoutState = {
   progressionLoading: Record<string, boolean>;
   /** After each exercise is fully logged, keyed by exercise name. */
   sessionRecommendations: Record<string, ProgressionRecommendation>;
+  /** First-time targets from body weight + experience when no log yet. */
+  startSuggestionByExercise: Record<string, StartLoadHint | undefined>;
+  /** Fetched for load hints; null if no row or before first fetch. */
+  userProfile: UserProfile | null;
+  userProfileStatus: 'idle' | 'loading' | 'ready';
   /** True if any exercise this session produced a deload / overreach flag. */
   sessionDeload: boolean;
   /** Today's logged body weight, if any (local calendar day). */
@@ -146,6 +156,9 @@ export const workoutInitialState: WorkoutState = {
   progressionByExercise: {},
   progressionLoading: {},
   sessionRecommendations: {},
+  startSuggestionByExercise: {},
+  userProfile: null,
+  userProfileStatus: 'idle',
   sessionDeload: false,
   todayBodyWeight: null,
   bodyWeightHistory: [],
@@ -157,13 +170,7 @@ export const workoutInitialState: WorkoutState = {
 
 const initialState = workoutInitialState;
 
-/** Local calendar date `YYYY-MM-DD` (for grouping and daily body weight). */
-export function localDateKey(d: Date): string {
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, '0');
-  const day = String(d.getDate()).padStart(2, '0');
-  return `${y}-${m}-${day}`;
-}
+export { localDateKey };
 
 type BodyWeightRow = {
   logged_date: string;
@@ -401,10 +408,60 @@ export const completeSetLog = createAsyncThunk(
   },
 );
 
+export const fetchUserProfile = createAsyncThunk(
+  'workout/fetchUserProfile',
+  async (_, { getState, rejectWithValue }) => {
+    const state = getState() as AppState;
+    const userId = state.auth.session?.user.id;
+    if (!userId) {
+      return rejectWithValue('Not authenticated');
+    }
+    try {
+      return await fetchUserProfileRow(userId);
+    } catch (e) {
+      return rejectWithValue(e instanceof Error ? e.message : String(e));
+    }
+  },
+);
+
+export const completeUserOnboarding = createAsyncThunk(
+  'workout/completeUserOnboarding',
+  async (
+    p: { heightInches: number; bodyWeightKg: number; experience: GymExperience },
+    { getState, rejectWithValue },
+  ) => {
+    const state = getState() as AppState;
+    const userId = state.auth.session?.user.id;
+    if (!userId) {
+      return rejectWithValue('Not authenticated');
+    }
+    try {
+      await saveOnboardingProfile({
+        userId,
+        heightInches: p.heightInches,
+        bodyWeightKg: p.bodyWeightKg,
+        experience: p.experience,
+      });
+      const row = await fetchUserProfileRow(userId);
+      if (row != null) {
+        return row;
+      }
+      return {
+        height_inches: p.heightInches,
+        body_weight_kg: p.bodyWeightKg,
+        experience: p.experience,
+        onboarding_complete: true,
+      };
+    } catch (e) {
+      return rejectWithValue(e instanceof Error ? e.message : String(e));
+    }
+  },
+);
+
 export const fetchProgressionForExercise = createAsyncThunk(
   'workout/fetchProgressionForExercise',
   async (
-    payload: { exerciseName: string; rep_range: string },
+    payload: { exerciseName: string; rep_range: string; equipment: string },
     { getState, rejectWithValue },
   ) => {
     const state = getState() as AppState;
@@ -420,7 +477,36 @@ export const fetchProgressionForExercise = createAsyncThunk(
         min,
         max,
       );
-      return { exerciseName: payload.exerciseName, progression };
+      let startSuggestion: StartLoadHint | null = null;
+      let userProfile: UserProfile | null | undefined;
+      if (progression.currentWeight == null) {
+        const prior = await getLastWorkoutLogs(userId, payload.exerciseName, 1);
+        if (prior.length === 0) {
+          let profile: UserProfile | null | undefined = state.workout.userProfile;
+          if (profile == null) {
+            try {
+              profile = await fetchUserProfileRow(userId);
+            } catch {
+              profile = null;
+            }
+            if (profile != null) {
+              userProfile = profile;
+            }
+          }
+          if (profile?.onboarding_complete) {
+            const s = suggestInitialLoad({
+              bodyWeightKg: profile.body_weight_kg,
+              experience: profile.experience,
+              exerciseName: payload.exerciseName,
+              equipment: payload.equipment,
+              repMin: min,
+              repMax: max,
+            });
+            startSuggestion = { weight: s.weightKg, reps: s.reps };
+          }
+        }
+      }
+      return { exerciseName: payload.exerciseName, progression, startSuggestion, userProfile };
     } catch (e) {
       return rejectWithValue(e instanceof Error ? e.message : String(e));
     }
@@ -761,9 +847,34 @@ const workoutSlice = createSlice({
         const name = action.meta.arg.exerciseName;
         state.progressionLoading[name] = true;
       })
+      .addCase(fetchUserProfile.pending, state => {
+        state.userProfileStatus = 'loading';
+      })
+      .addCase(fetchUserProfile.fulfilled, (state, action) => {
+        state.userProfile = action.payload;
+        state.userProfileStatus = 'ready';
+      })
+      .addCase(fetchUserProfile.rejected, state => {
+        state.userProfileStatus = 'ready';
+      })
+      .addCase(completeUserOnboarding.fulfilled, (state, action) => {
+        state.userProfile = action.payload;
+        state.userProfileStatus = 'ready';
+      })
+      .addCase(completeUserOnboarding.rejected, (state, action) => {
+        state.error = (action.payload as string) ?? state.error;
+      })
       .addCase(fetchProgressionForExercise.fulfilled, (state, action) => {
-        const { exerciseName, progression } = action.payload;
+        const { exerciseName, progression, startSuggestion, userProfile: profileIn } = action.payload;
+        if (profileIn != null) {
+          state.userProfile = profileIn;
+        }
         state.progressionByExercise[exerciseName] = progression;
+        if (startSuggestion == null) {
+          delete state.startSuggestionByExercise[exerciseName];
+        } else {
+          state.startSuggestionByExercise[exerciseName] = startSuggestion;
+        }
         state.progressionLoading[exerciseName] = false;
       })
       .addCase(fetchProgressionForExercise.rejected, (state, action) => {
@@ -858,6 +969,11 @@ const workoutSlice = createSlice({
       .addCase(saveTodayBodyWeight.rejected, (state, action) => {
         state.bodyWeightLoading = false;
         state.bodyWeightError = (action.payload as string) ?? 'Could not save weight';
+      })
+      .addCase(logoutUser.fulfilled, state => {
+        state.userProfile = null;
+        state.userProfileStatus = 'idle';
+        state.startSuggestionByExercise = {};
       });
   },
 });

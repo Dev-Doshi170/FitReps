@@ -4,6 +4,8 @@ import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-nati
 
 import { HardwareButton, ToggleSwitch } from '../components/crt';
 import { hapticLight, hapticMedium } from '../lib/haptics';
+import { getExerciseSessionHistory, type ExerciseSessionGroup } from '../lib/progressionService';
+import type { ProgressionFlag, ProgressionRecommendation } from '../lib/progressionTypes';
 import type { AppStackParamList } from '../navigation/AppNavigator';
 import { useLastPerformance } from '../hooks/useLastPerformance';
 import { useAppDispatch, useAppSelector } from '../store';
@@ -22,9 +24,53 @@ type Props = NativeStackScreenProps<AppStackParamList, 'ExerciseLogging'>;
 
 const LB = 2.2046226218;
 
+function isBodyweightEquipment(equipment: string): boolean {
+  const e = equipment.toLowerCase();
+  return (
+    (e.includes('body') && e.includes('weight')) ||
+    e.includes('bodyweight') ||
+    e.includes('calisthen')
+  );
+}
+
+function flagPill(
+  flag: ProgressionFlag,
+): { label: string; borderColor: string; textColor: string } {
+  switch (flag) {
+    case 'increase_weight':
+      return { label: 'UP WEIGHT', borderColor: colors.accent, textColor: colors.accent };
+    case 'increase_reps':
+      return { label: 'ADD REPS', borderColor: colors.accentTertiary, textColor: colors.accentTertiary };
+    case 'maintain':
+      return { label: 'HOLD', borderColor: colors.textMuted, textColor: colors.textMuted };
+    case 'deload':
+      return { label: 'DELOAD', borderColor: colors.accentSecondary, textColor: colors.accentSecondary };
+    default:
+      return { label: 'STEADY', borderColor: colors.textMuted, textColor: colors.textMuted };
+  }
+}
+
+function formatHistoryDate(dateKey: string): string {
+  const d = new Date(`${dateKey}T12:00:00`);
+  return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+}
+
+function nextSessionNumbers(rec: ProgressionRecommendation, useLb: boolean) {
+  const w = rec.nextWeight;
+  if (w == null) {
+    return { line: `${rec.nextRepsTarget} reps` };
+  }
+  const display = useLb ? Math.round(w * LB * 10) / 10 : Math.round(w * 10) / 10;
+  const unit = useLb ? 'lb' : 'kg';
+  return {
+    line: `${display} ${unit} × ${rec.nextRepsTarget} reps`,
+  };
+}
+
 export default function ExerciseLoggingScreen({ navigation, route }: Props) {
   const { exercise } = route.params;
   const dispatch = useAppDispatch();
+  const userId = useAppSelector(s => s.auth.session?.user.id);
   const logs = useAppSelector(s => s.workout.logs);
   const saving = useAppSelector(s => s.workout.loading);
   const sessionDeload = useAppSelector(s => s.workout.sessionDeload);
@@ -39,10 +85,19 @@ export default function ExerciseLoggingScreen({ navigation, route }: Props) {
   );
 
   const { data: lastData, loading: lastLoading } = useLastPerformance(exercise.name);
+  const hasPriorSession = lastData.length > 0;
+  const startHint = useAppSelector(
+    s => s.workout.startSuggestionByExercise[exercise.name],
+  );
 
   const [useLb, setUseLb] = useState(false);
   const [awaitingRpe, setAwaitingRpe] = useState(false);
+  const [historyOpen, setHistoryOpen] = useState(false);
+  const [sessionHistory, setSessionHistory] = useState<ExerciseSessionGroup[]>([]);
+  const [historyLoading, setHistoryLoading] = useState(false);
   const finalizedRef = useRef(false);
+
+  const isBw = useMemo(() => isBodyweightEquipment(exercise.equipment), [exercise.equipment]);
 
   useEffect(() => {
     dispatch(selectExercise(exercise));
@@ -53,9 +108,10 @@ export default function ExerciseLoggingScreen({ navigation, route }: Props) {
       fetchProgressionForExercise({
         exerciseName: exercise.name,
         rep_range: exercise.rep_range,
+        equipment: exercise.equipment,
       }),
     );
-  }, [dispatch, exercise.name, exercise.rep_range]);
+  }, [dispatch, exercise.name, exercise.rep_range, exercise.equipment]);
 
   const exerciseLogs = useMemo(
     () => logs.filter(l => l.exerciseId === exercise.id),
@@ -78,6 +134,54 @@ export default function ExerciseLoggingScreen({ navigation, route }: Props) {
     [lastData],
   );
 
+  const firstSessionReps = useCallback(() => {
+    if (startHint == null || hasPriorSession || !progression) {
+      return null;
+    }
+    return startHint.reps;
+  }, [startHint, hasPriorSession, progression]);
+
+  const sessionRepsForSet = useCallback(
+    (setNumber: number) => {
+      if (!progression) {
+        return 0;
+      }
+      const lr = lastForSet(setNumber).reps;
+      if (lr != null) {
+        return lr;
+      }
+      const h = firstSessionReps();
+      if (h != null) {
+        return h;
+      }
+      return progression.currentRepsTarget;
+    },
+    [firstSessionReps, lastForSet, progression],
+  );
+
+  const nextSessionInfo = useMemo(
+    () => (recommendation != null ? nextSessionNumbers(recommendation, useLb) : null),
+    [recommendation, useLb],
+  );
+
+  /** Logged last time often has weight when `progression_state` still has null (e.g. bodyweight-typed work with assistance). */
+  const effectiveTargetWeight = useCallback(
+    (setNumber: number) => {
+      if (!progression) {
+        return null;
+      }
+      const fromLast = lastForSet(setNumber).weight;
+      if (fromLast != null) {
+        return fromLast;
+      }
+      if (!hasPriorSession && startHint?.weight != null) {
+        return startHint.weight;
+      }
+      return progression.currentWeight;
+    },
+    [lastForSet, hasPriorSession, startHint, progression],
+  );
+
   const activeSet = useMemo(() => {
     for (let i = 1; i <= exercise.sets; i += 1) {
       if (!getLog(i)?.supabaseId) {
@@ -87,27 +191,77 @@ export default function ExerciseLoggingScreen({ navigation, route }: Props) {
     return exercise.sets;
   }, [exercise.sets, getLog]);
 
-  const didPrefill = useRef(false);
+  const targetHeadline = useMemo(() => {
+    if (!progression) {
+      return null;
+    }
+    const r = sessionRepsForSet(activeSet);
+    const w = effectiveTargetWeight(activeSet);
+    if (w == null) {
+      return { line: `${r} reps` };
+    }
+    const dw = useLb ? Math.round(w * LB * 10) / 10 : Math.round(w * 10) / 10;
+    const u = useLb ? 'lb' : 'kg';
+    return { line: `${dw} ${u} × ${r} reps` };
+  }, [activeSet, effectiveTargetWeight, progression, sessionRepsForSet, useLb]);
+
+  const applyPlanTargetToActiveSet = useCallback(() => {
+    if (!progression) {
+      return;
+    }
+    dispatch(
+      updateSetLog({
+        exerciseId: exercise.id,
+        setNumber: activeSet,
+        reps: sessionRepsForSet(activeSet),
+        weight: effectiveTargetWeight(activeSet),
+      }),
+    );
+    hapticLight();
+  }, [activeSet, dispatch, exercise.id, effectiveTargetWeight, progression, sessionRepsForSet]);
+
+  /** Merge last-session weight when progression has no row yet; re-run when `last` finishes loading. */
   useEffect(() => {
     if (lastLoading || progressionLoading || !progression) {
       return;
     }
-    if (didPrefill.current) {
-      return;
-    }
-    didPrefill.current = true;
     for (let setNumber = 1; setNumber <= exercise.sets; setNumber += 1) {
       const existing = exerciseLogs.find(l => l.setNumber === setNumber);
-      if (existing?.reps != null || existing?.weight != null) {
+      if (existing?.supabaseId) {
         continue;
       }
       const last = lastForSet(setNumber);
+      const finalReps =
+        existing != null && existing.reps != null
+          ? existing.reps
+          : last.reps != null
+            ? last.reps
+            : !hasPriorSession && startHint
+              ? startHint.reps
+              : progression.currentRepsTarget;
+      const finalWeight =
+        existing != null && existing.weight != null
+          ? existing.weight
+          : last.weight != null
+            ? last.weight
+            : !hasPriorSession && startHint?.weight != null
+              ? startHint.weight
+              : progression.currentWeight;
+
+      const noChange =
+        existing != null &&
+        existing.reps === finalReps &&
+        (existing.weight === finalWeight || (existing.weight == null && finalWeight == null));
+      if (noChange) {
+        continue;
+      }
+
       dispatch(
         updateSetLog({
           exerciseId: exercise.id,
           setNumber,
-          reps: progression.currentRepsTarget,
-          weight: last.weight ?? progression.currentWeight,
+          reps: finalReps,
+          weight: finalWeight,
         }),
       );
     }
@@ -117,9 +271,11 @@ export default function ExerciseLoggingScreen({ navigation, route }: Props) {
     exercise.sets,
     exerciseLogs,
     lastForSet,
+    hasPriorSession,
     lastLoading,
     progression,
     progressionLoading,
+    startHint,
   ]);
 
   const allSetsSynced = useMemo(() => {
@@ -131,6 +287,31 @@ export default function ExerciseLoggingScreen({ navigation, route }: Props) {
     }
     return true;
   }, [exercise.sets, getLog]);
+
+  const loadSessionHistory = useCallback(async () => {
+    if (!userId) {
+      return;
+    }
+    setHistoryLoading(true);
+    try {
+      const rows = await getExerciseSessionHistory(userId, exercise.name, 16);
+      setSessionHistory(rows);
+    } catch {
+      setSessionHistory([]);
+    } finally {
+      setHistoryLoading(false);
+    }
+  }, [userId, exercise.name]);
+
+  useEffect(() => {
+    loadSessionHistory();
+  }, [loadSessionHistory]);
+
+  useEffect(() => {
+    if (allSetsSynced) {
+      loadSessionHistory();
+    }
+  }, [allSetsSynced, loadSessionHistory]);
 
   useEffect(() => {
     if (!allSetsSynced) {
@@ -225,7 +406,11 @@ export default function ExerciseLoggingScreen({ navigation, route }: Props) {
     if (row?.supabaseId) {
       return;
     }
-    if (row?.reps == null || row?.weight == null) {
+    if (row?.reps == null) {
+      Alert.alert('Incomplete', 'Set reps before logging.');
+      return;
+    }
+    if (!isBw && row?.weight == null) {
       Alert.alert('Incomplete', 'Set weight and reps before logging.');
       return;
     }
@@ -254,6 +439,27 @@ export default function ExerciseLoggingScreen({ navigation, route }: Props) {
       <ScrollView contentContainerStyle={styles.scroll}>
         <Text style={styles.h1}>{exercise.name}</Text>
         <Text style={styles.lastLine}>Last: {lastLine}</Text>
+
+        {!progressionLoading && progression != null && targetHeadline != null ? (
+          <View style={styles.targetCard}>
+            <Text style={styles.targetTitle}>Aim for this log</Text>
+            <Text style={styles.targetHeadline}>{targetHeadline.line}</Text>
+            <Text style={styles.targetRange}>
+              Range {progression.repRangeMin}–{progression.repRangeMax} · {exercise.rep_range}
+            </Text>
+            {allSetsSynced ? null : (
+              <Pressable
+                onPress={applyPlanTargetToActiveSet}
+                style={({ pressed }) => [styles.targetApply, pressed && styles.targetApplyPressed]}
+                accessibilityRole="button"
+                accessibilityLabel="Apply plan target to active set">
+                <Text style={styles.targetApplyText}>Use target on set {activeSet}</Text>
+              </Pressable>
+            )}
+          </View>
+        ) : progressionLoading ? (
+          <Text style={styles.progLoadingText}>Loading progression…</Text>
+        ) : null}
 
         <View style={styles.panel}>
           <View style={styles.stepperRow}>
@@ -354,10 +560,59 @@ export default function ExerciseLoggingScreen({ navigation, route }: Props) {
           })}
         </View>
 
-        {recommendation != null ? (
-          <Text style={styles.recOneLine} numberOfLines={3}>
-            Tip: {recommendation.recommendation}
+        <Pressable
+          onPress={() => {
+            hapticLight();
+            setHistoryOpen(h => !h);
+          }}
+          style={({ pressed }) => [styles.historyHeader, pressed && styles.historyHeaderOn]}
+          accessibilityRole="button"
+          accessibilityState={{ expanded: historyOpen }}
+          accessibilityLabel="Toggle previous sessions">
+          <Text style={styles.historyHeaderText}>
+            {historyOpen ? '▼' : '▶'}  Previous sessions
           </Text>
+          {historyLoading ? <Text style={styles.historyMeta}>loading</Text> : null}
+        </Pressable>
+        {historyOpen ? (
+          <View style={styles.historyBody}>
+            {sessionHistory.length === 0 && !historyLoading ? (
+              <Text style={styles.historyEmpty}>No past logs for this lift yet.</Text>
+            ) : null}
+            {sessionHistory.map(sess => (
+              <View key={sess.dateKey} style={styles.historySess}>
+                <Text style={styles.historyDate}>{formatHistoryDate(sess.dateKey)}</Text>
+                {sess.sets.map(s => (
+                  <Text
+                    key={`${sess.dateKey}-${s.setNumber}`}
+                    style={styles.historySetLine}>
+                    {s.setNumber}. {s.weight != null ? `${s.weight} kg` : '—'} × {s.reps ?? '—'}
+                  </Text>
+                ))}
+              </View>
+            ))}
+          </View>
+        ) : null}
+
+        {recommendation != null && nextSessionInfo != null ? (
+          <View style={styles.nextSessionCard}>
+            <View style={styles.nextRow}>
+              <Text style={styles.nextSessionTitle}>Next session</Text>
+              {recommendation.flag != null && (
+                <View
+                  style={[
+                    styles.flagPill,
+                    { borderColor: flagPill(recommendation.flag).borderColor },
+                  ]}>
+                  <Text
+                    style={[styles.flagPillText, { color: flagPill(recommendation.flag).textColor }]}>
+                    {flagPill(recommendation.flag).label}
+                  </Text>
+                </View>
+              )}
+            </View>
+            <Text style={styles.nextNumbers}>{nextSessionInfo.line}</Text>
+          </View>
         ) : null}
       </ScrollView>
 
@@ -567,11 +822,167 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: colors.text,
   },
-  recOneLine: {
-    marginTop: spacing(1),
+  targetCard: {
+    borderWidth: 1,
+    borderColor: colors.borderSubtle,
+    backgroundColor: colors.surface,
+    padding: spacing(1.5),
+    marginBottom: spacing(2),
+    gap: 8,
+  },
+  targetTitle: {
+    fontFamily: fontFamily.bold,
+    fontSize: crt.labelFontSize,
+    letterSpacing: 2,
+    color: colors.textMuted,
+  },
+  targetHeadline: {
+    fontFamily: fontFamily.bold,
+    fontSize: 16,
+    color: colors.accent,
+  },
+  targetRange: {
+    fontFamily: fontFamily.regular,
+    fontSize: 12,
+    color: colors.text,
+  },
+  targetNote: {
+    fontFamily: fontFamily.regular,
+    fontSize: 11,
+    color: colors.textMuted,
+    lineHeight: 16,
+  },
+  targetApply: {
+    alignSelf: 'flex-start',
+    borderWidth: 1,
+    borderColor: colors.accent,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    backgroundColor: colors.surfaceElevated,
+  },
+  targetApplyPressed: {
+    backgroundColor: colors.activeTint,
+  },
+  targetApplyText: {
+    fontFamily: fontFamily.bold,
+    fontSize: 11,
+    letterSpacing: 1,
+    color: colors.accent,
+  },
+  progLoadingText: {
     fontFamily: fontFamily.regular,
     fontSize: 12,
     color: colors.textMuted,
+    marginBottom: spacing(1.5),
+  },
+  historyHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    borderWidth: 1,
+    borderColor: colors.borderSubtle,
+    padding: spacing(1.25),
+    marginBottom: 0,
+    backgroundColor: colors.surface,
+  },
+  historyHeaderOn: {
+    borderColor: colors.textMuted,
+  },
+  historyHeaderText: {
+    fontFamily: fontFamily.bold,
+    fontSize: 11,
+    letterSpacing: 1,
+    color: colors.text,
+  },
+  historyMeta: {
+    fontFamily: fontFamily.regular,
+    fontSize: 10,
+    color: colors.textMuted,
+  },
+  historyBody: {
+    borderWidth: 1,
+    borderTopWidth: 0,
+    borderColor: colors.borderSubtle,
+    padding: spacing(1.5),
+    marginBottom: spacing(2),
+    backgroundColor: colors.bg,
+    gap: spacing(1.5),
+  },
+  historyEmpty: {
+    fontFamily: fontFamily.regular,
+    fontSize: 12,
+    color: colors.textMuted,
+  },
+  historySess: {
+    gap: 4,
+  },
+  historyDate: {
+    fontFamily: fontFamily.bold,
+    fontSize: 12,
+    color: colors.accentSecondary,
+  },
+  historySetLine: {
+    fontFamily: fontFamily.regular,
+    fontSize: 12,
+    color: colors.text,
+    marginLeft: 4,
+  },
+  nextSessionCard: {
+    marginTop: spacing(1),
+    borderWidth: 1,
+    borderColor: colors.accent,
+    padding: spacing(1.5),
+    backgroundColor: colors.activeTint,
+    gap: 8,
+  },
+  nextRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  nextSessionTitle: {
+    fontFamily: fontFamily.bold,
+    fontSize: 11,
+    letterSpacing: 2,
+    color: colors.text,
+  },
+  flagPill: {
+    borderWidth: 1,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+  },
+  flagPillText: {
+    fontFamily: fontFamily.bold,
+    fontSize: 9,
+    letterSpacing: 1,
+  },
+  nextNumbers: {
+    fontFamily: fontFamily.bold,
+    fontSize: 15,
+    color: colors.accent,
+  },
+  nextSub: {
+    fontFamily: fontFamily.regular,
+    fontSize: 10,
+    color: colors.textMuted,
+  },
+  nextBlurb: {
+    fontFamily: fontFamily.regular,
+    fontSize: 12,
+    color: colors.text,
+    lineHeight: 18,
+  },
+  alertBox: {
+    borderWidth: 1,
+    borderColor: colors.accentSecondary,
+    backgroundColor: 'rgba(255, 107, 0, 0.12)',
+    padding: spacing(1),
+  },
+  alertText: {
+    fontFamily: fontFamily.regular,
+    fontSize: 12,
+    color: colors.text,
     lineHeight: 18,
   },
   footer: {

@@ -157,3 +157,62 @@ export async function getProgressionStateForPlanExercise(
   const { min, max } = parsePlanRepsString(repsField);
   return getProgressionState(userId, exerciseName, min, max);
 }
+
+function localDateKey(d: Date): string {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
+export type ExerciseSessionGroup = {
+  dateKey: string;
+  sets: { setNumber: number; reps: number | null; weight: number | null }[];
+};
+
+/** Group `workout_logs` by local calendar day for one exercise (most recent days first). */
+export async function getExerciseSessionHistory(
+  userId: string,
+  exerciseName: string,
+  maxSessions = 16,
+): Promise<ExerciseSessionGroup[]> {
+  const { data, error } = await supabase
+    .from('workout_logs')
+    .select('date, set_number, reps, weight')
+    .eq('user_id', userId)
+    .eq('exercise_name', exerciseName)
+    .order('date', { ascending: false })
+    .limit(1200);
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  const byDate = new Map<string, { set_number: number; reps: number | null; weight: number | null }[]>();
+  for (const row of data ?? []) {
+    const r = row as { date: string; set_number: number; reps: number | null; weight: number | null };
+    const dk = localDateKey(new Date(r.date));
+    if (!byDate.has(dk)) {
+      byDate.set(dk, []);
+    }
+    byDate.get(dk)!.push({
+      set_number: r.set_number,
+      reps: r.reps,
+      weight: r.weight,
+    });
+  }
+
+  const keys = Array.from(byDate.keys()).sort((a, b) => (a < b ? 1 : a > b ? -1 : 0));
+  return keys.slice(0, maxSessions).map(k => {
+    const raw = byDate.get(k) ?? [];
+    const sorted = [...raw].sort((a, b) => a.set_number - b.set_number);
+    return {
+      dateKey: k,
+      sets: sorted.map(s => ({
+        setNumber: s.set_number,
+        reps: s.reps,
+        weight: s.weight,
+      })),
+    };
+  });
+}

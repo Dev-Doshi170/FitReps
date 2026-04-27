@@ -74,6 +74,7 @@ export default function TodayWorkoutScreen({ navigation, route }: Props) {
         fetchProgressionForExercise({
           exerciseName: ex.name,
           rep_range: ex.rep_range,
+          equipment: ex.equipment,
         }),
       );
     }

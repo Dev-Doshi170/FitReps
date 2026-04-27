@@ -211,6 +211,17 @@ export default function DashboardScreen() {
           </View>
         )}
 
+        <Text style={styles.sectionLabel}>FORM & POSTURE /</Text>
+        <HardwareButton
+          label="OPEN FORM TRACKER"
+          variant="outlined"
+          onPress={() => {
+            hapticLight();
+            navigation.navigate('FormTracking');
+          }}
+          style={styles.formTrackBtn}
+        />
+
         <Text style={styles.sectionLabel}>BODY MASS /</Text>
         <View style={styles.bodyMassRow}>
           <TextInput
@@ -430,6 +441,10 @@ const styles = StyleSheet.create({
   },
   startBtn: {
     width: '100%',
+  },
+  formTrackBtn: {
+    width: '100%',
+    marginBottom: spacing(2),
   },
   sectionLabel: {
     fontFamily: fontFamily.regular,

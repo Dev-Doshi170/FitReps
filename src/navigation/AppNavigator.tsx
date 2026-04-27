@@ -2,6 +2,7 @@ import type { ComponentProps } from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 
+import CameraScreen from '../screens/CameraScreen';
 import DashboardScreen from '../screens/DashboardScreen';
 import ExerciseLoggingScreen from '../screens/ExerciseLoggingScreen';
 import HistoryScreen from '../screens/HistoryScreen';
@@ -29,6 +30,7 @@ export type AppStackParamList = {
   WeightHistory: undefined;
   WorkoutPlans: undefined;
   WorkoutPlanDetail: { planId: string; planName: string };
+  FormTracking: undefined;
 };
 
 const Tab = createBottomTabNavigator<MainTabParamList>();
@@ -121,6 +123,13 @@ export default function AppNavigator() {
           title: route.params.planName.toUpperCase(),
           headerTitle: route.params.planName.toUpperCase(),
         })}
+      />
+      <Stack.Screen
+        name="FormTracking"
+        component={CameraScreen}
+        options={{
+          headerShown: false,
+        }}
       />
     </Stack.Navigator>
   );

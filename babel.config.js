@@ -28,6 +28,7 @@ module.exports = function (api) {
       'react-native-worklets-core/plugin',
       // Reanimated docs: this plugin must be last.
       'react-native-reanimated/plugin',
+      '@babel/plugin-transform-class-static-block',
     ],
   };
 };

@@ -245,6 +245,33 @@ export type Database = {
         }
         Relationships: []
       }
+      user_profiles: {
+        Row: {
+          body_weight_kg: number
+          experience: string
+          height_inches: number
+          onboarding_complete: boolean
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          body_weight_kg: number
+          experience: string
+          height_inches: number
+          onboarding_complete?: boolean
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          body_weight_kg?: number
+          experience?: string
+          height_inches?: number
+          onboarding_complete?: boolean
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       workout_logs: {
         Row: {
           date: string
@@ -279,7 +306,15 @@ export type Database = {
           user_id?: string
           weight?: number | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "workout_logs_plan_day_id_fkey"
+            columns: ["plan_day_id"]
+            isOneToOne: false
+            referencedRelation: "plan_days"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {

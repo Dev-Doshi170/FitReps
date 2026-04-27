@@ -1,4 +1,6 @@
 import React, { useEffect, useRef, useCallback, useState } from 'react';
+import { useNavigation } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import {
   View,
   Text,
@@ -7,6 +9,7 @@ import {
   NativeModules,
   Dimensions,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   Camera,
   type CameraRuntimeError,
@@ -15,6 +18,10 @@ import {
   useCameraPermission,
 } from 'react-native-vision-camera';
 import Svg, { Circle, Line, Text as SvgText } from 'react-native-svg';
+
+import type { AppStackParamList } from '../navigation/AppNavigator';
+import { hapticLight } from '../lib/haptics';
+import { colors, fontFamily } from '../theme/theme';
 
 const { TFLiteModule } = NativeModules;
 const { width: SCREEN_W, height: SCREEN_H } = Dimensions.get('window');
@@ -74,11 +81,6 @@ const PHOTO_ASPECT_W = 3; // native photo aspect (width part) – confirm from l
 const PHOTO_ASPECT_H = 4; // native photo aspect (height part)
 const PHOTO_W_OVER_H = PHOTO_ASPECT_W / PHOTO_ASPECT_H; // < 1 in portrait
 
-// Cover scale: fill screen, crop overflow
-const scaleX = SCREEN_W / (SCREEN_H * PHOTO_W_OVER_H); // usually > 1 (horizontal overflow would be cropped)
-const scaleY = 1; // height fills screen exactly
-
-// Actually compute properly:
 // After cover-fill the rendered photo size inside the screen is:
 let renderedPhotoW: number;
 let renderedPhotoH: number;
@@ -115,7 +117,11 @@ interface Keypoint {
   score: number;
 }
 
+type FormTrackingNav = NativeStackNavigationProp<AppStackParamList, 'FormTracking'>;
+
 export default function CameraScreen(): React.ReactElement {
+  const navigation = useNavigation<FormTrackingNav>();
+  const insets = useSafeAreaInsets();
   const device = useCameraDevice('back');
 
   const format = useCameraFormat(device, [
@@ -134,7 +140,7 @@ export default function CameraScreen(): React.ReactElement {
   // ── Permissions ────────────────────────────────────────────────────────
   useEffect(() => {
     if (!hasPermission) requestPermission();
-  }, [hasPermission]);
+  }, [hasPermission, requestPermission]);
 
   // ── Load model once ────────────────────────────────────────────────────
   useEffect(() => {
@@ -180,6 +186,16 @@ export default function CameraScreen(): React.ReactElement {
   if (!hasPermission) {
     return (
       <View style={styles.centered}>
+        {navigation.canGoBack() && (
+          <Pressable
+            onPress={() => {
+              hapticLight();
+              navigation.goBack();
+            }}
+            style={[styles.permissionBack, { top: insets.top + 8 }]}>
+            <Text style={styles.backLabel}>‹ BACK</Text>
+          </Pressable>
+        )}
         <Text style={styles.message}>Camera permission required</Text>
         <Pressable onPress={requestPermission} style={styles.permissionButton}>
           <Text style={styles.permissionText}>Grant Permission</Text>
@@ -257,8 +273,26 @@ export default function CameraScreen(): React.ReactElement {
         })}
       </Svg>
 
+      <View
+        style={[styles.chrome, { paddingTop: insets.top }]}
+        pointerEvents="box-none">
+        {navigation.canGoBack() && (
+          <Pressable
+            onPress={() => {
+              hapticLight();
+              navigation.goBack();
+            }}
+            style={styles.backRow}
+            hitSlop={12}
+            accessibilityRole="button"
+            accessibilityLabel="Back">
+            <Text style={styles.backLabel}>‹ BACK</Text>
+          </Pressable>
+        )}
+      </View>
+
       {/* Debug info */}
-      <View style={styles.debugBadge}>
+      <View style={[styles.debugBadge, { top: insets.top + 44 }]}>
         <Text style={styles.debugText}>
           {`Screen: ${SCREEN_W.toFixed(0)}×${SCREEN_H.toFixed(0)}\n`}
           {`Photo rendered: ${renderedPhotoW.toFixed(0)}×${renderedPhotoH.toFixed(0)}\n`}
@@ -268,7 +302,11 @@ export default function CameraScreen(): React.ReactElement {
 
       {/* START / STOP button */}
       <Pressable
-        style={[styles.button, isRunning && styles.buttonStop]}
+        style={[
+          styles.button,
+          isRunning && styles.buttonStop,
+          { bottom: 24 + insets.bottom },
+        ]}
         onPress={isRunning ? stopLoop : startLoop}
       >
         <Text style={styles.buttonText}>{isRunning ? '⏹ STOP' : '▶ START'}</Text>
@@ -314,9 +352,27 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
 
+  chrome: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 4,
+  },
+  backRow: {
+    paddingHorizontal: 12,
+    paddingBottom: 8,
+    alignSelf: 'flex-start',
+  },
+  backLabel: {
+    fontFamily: fontFamily.bold,
+    fontSize: 13,
+    letterSpacing: 2,
+    color: colors.accent,
+  },
   button: {
     position: 'absolute',
-    bottom: 50,
+    zIndex: 2,
     alignSelf: 'center',
     backgroundColor: 'rgba(0,0,0,0.7)',
     paddingHorizontal: 32,
@@ -339,8 +395,8 @@ const styles = StyleSheet.create({
 
   debugBadge: {
     position: 'absolute',
-    top: 60,
     left: 12,
+    zIndex: 3,
     backgroundColor: 'rgba(0,0,0,0.55)',
     padding: 8,
     borderRadius: 6,
@@ -352,10 +408,15 @@ const styles = StyleSheet.create({
     fontFamily: 'Menlo',
   },
 
+  permissionBack: {
+    position: 'absolute',
+    left: 12,
+  },
   errorText: {
     color: 'red',
     position: 'absolute',
     top: 120,
+    zIndex: 2,
     alignSelf: 'center',
     backgroundColor: 'rgba(0,0,0,0.6)',
     padding: 6,

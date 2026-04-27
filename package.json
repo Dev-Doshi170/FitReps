@@ -8,7 +8,9 @@
     "lint": "eslint .",
     "start": "react-native start",
     "test": "jest --forceExit",
-    "generate:workout-seed": "node scripts/generate-workout-plan-seed.mjs"
+    "generate:workout-seed": "node scripts/generate-workout-plan-seed.mjs",
+    "types": "supabase gen types typescript --linked > /Users/ztlab92/Desktop/FitReps/database.types.ts"
+
   },
   "dependencies": {
     "@gluestack-style/react": "^1.0.57",
@@ -42,6 +44,7 @@
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",
+    "@babel/plugin-transform-class-static-block": "^7.28.6",
     "@babel/preset-env": "^7.25.3",
     "@babel/runtime": "^7.25.0",
     "@react-native-community/cli": "20.1.0",
