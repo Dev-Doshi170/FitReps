@@ -101,7 +101,10 @@ export default function WorkoutSessionSummaryScreen({ navigation }: Props) {
 
   return (
     <CrtScreen flicker={false}>
-      <ScrollView contentContainerStyle={styles.pad}>
+      <ScrollView
+        contentContainerStyle={styles.pad}
+        showsVerticalScrollIndicator={false}
+        showsHorizontalScrollIndicator={false}>
         <GlitchTitle text="SESSION COMPLETE" />
 
         <View style={styles.grid}>
@@ -162,6 +165,7 @@ export default function WorkoutSessionSummaryScreen({ navigation }: Props) {
 const styles = StyleSheet.create({
   pad: {
     paddingBottom: spacing(4),
+    paddingHorizontal: spacing(2),
   },
   glitchTitle: {
     fontFamily: fontFamily.bold,

@@ -124,7 +124,10 @@ export default function TodayWorkoutScreen({ navigation, route }: Props) {
   if (planError) {
     return (
       <CrtScreen flicker={false}>
-        <ScrollView contentContainerStyle={styles.pad}>
+        <ScrollView
+          contentContainerStyle={styles.pad}
+          showsVerticalScrollIndicator={false}
+          showsHorizontalScrollIndicator={false}>
           <Text style={styles.err}>{planError}</Text>
         </ScrollView>
       </CrtScreen>
@@ -134,7 +137,10 @@ export default function TodayWorkoutScreen({ navigation, route }: Props) {
   if (!plan || plan.plan_day_id !== planDayId) {
     return (
       <CrtScreen flicker={false}>
-        <ScrollView contentContainerStyle={styles.pad}>
+        <ScrollView
+          contentContainerStyle={styles.pad}
+          showsVerticalScrollIndicator={false}
+          showsHorizontalScrollIndicator={false}>
           <Text style={styles.muted}>SESSION NOT FOUND.</Text>
         </ScrollView>
       </CrtScreen>
@@ -145,7 +151,10 @@ export default function TodayWorkoutScreen({ navigation, route }: Props) {
 
   return (
     <CrtScreen flicker={false}>
-      <ScrollView contentContainerStyle={styles.pad}>
+      <ScrollView
+        contentContainerStyle={styles.pad}
+        showsVerticalScrollIndicator={false}
+        showsHorizontalScrollIndicator={false}>
         <Text style={styles.subHead}>
           {dateStr} · {plan.exercises.length} MOVEMENTS
         </Text>
@@ -209,6 +218,7 @@ export default function TodayWorkoutScreen({ navigation, route }: Props) {
 const styles = StyleSheet.create({
   pad: {
     paddingBottom: spacing(4),
+    paddingHorizontal: spacing(2),
   },
   centered: {
     flex: 1,

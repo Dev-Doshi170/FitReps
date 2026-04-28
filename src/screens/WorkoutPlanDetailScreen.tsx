@@ -55,7 +55,10 @@ export default function WorkoutPlanDetailScreen({ route }: Props) {
 
   return (
     <CrtScreen flicker={false}>
-      <ScrollView contentContainerStyle={styles.pad}>
+      <ScrollView
+        contentContainerStyle={styles.pad}
+        showsVerticalScrollIndicator={false}
+        showsHorizontalScrollIndicator={false}>
         {loading ? (
           <View style={styles.center}>
             <ActivityIndicator color={colors.accent} />
@@ -111,6 +114,7 @@ export default function WorkoutPlanDetailScreen({ route }: Props) {
 const styles = StyleSheet.create({
   pad: {
     paddingBottom: spacing(4),
+    paddingHorizontal: spacing(2),
   },
   center: {
     alignItems: 'center',

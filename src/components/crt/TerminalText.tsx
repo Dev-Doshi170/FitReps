@@ -51,7 +51,11 @@ export default function TerminalText({
 
   return (
     <Animated.View style={[styles.wrap, { opacity }, style]}>
-      <ScrollView style={styles.scroll} nestedScrollEnabled>
+      <ScrollView
+        style={styles.scroll}
+        nestedScrollEnabled
+        showsVerticalScrollIndicator={false}
+        showsHorizontalScrollIndicator={false}>
         {lines.slice(0, visibleCount).map((line, i) => (
           <Text key={i} style={styles.line} selectable={false}>
             {line}

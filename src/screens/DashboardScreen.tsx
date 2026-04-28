@@ -141,7 +141,10 @@ export default function DashboardScreen() {
 
   return (
     <CrtScreen flicker>
-      <ScrollView contentContainerStyle={styles.scroll}>
+      <ScrollView
+        contentContainerStyle={styles.scroll}
+        showsVerticalScrollIndicator={false}
+        showsHorizontalScrollIndicator={false}>
         <View style={styles.statusStrip}>
           <Text style={styles.statusText} numberOfLines={1}>
             STREAK: {streak} DAYS
@@ -159,7 +162,9 @@ export default function DashboardScreen() {
           </Text>
         </View>
 
-        <TapeReel days={tapeDays} />
+        <View style={styles.fullBleedH}>
+          <TapeReel days={tapeDays} />
+        </View>
 
         {planSessionsLoading ? (
           <View style={styles.loadingBox}>
@@ -190,6 +195,7 @@ export default function DashboardScreen() {
             <Text style={styles.heroFocus}>{heroCard.focus}</Text>
             <ScrollView
               horizontal
+              showsVerticalScrollIndicator={false}
               showsHorizontalScrollIndicator={false}
               contentContainerStyle={styles.pills}>
               {heroCard.exerciseNames.map((name, i) => (
@@ -313,6 +319,10 @@ export default function DashboardScreen() {
 const styles = StyleSheet.create({
   scroll: {
     paddingBottom: spacing(4),
+    paddingHorizontal: spacing(2),
+  },
+  fullBleedH: {
+    marginHorizontal: -spacing(2),
   },
   statusStrip: {
     flexDirection: 'row',

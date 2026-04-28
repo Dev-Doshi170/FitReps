@@ -1,6 +1,14 @@
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import {
+  Alert,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from 'react-native';
 
 import { HardwareButton, ToggleSwitch } from '../components/crt';
 import { hapticLight, hapticMedium } from '../lib/haptics';
@@ -55,6 +63,24 @@ function formatHistoryDate(dateKey: string): string {
   return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
 }
 
+function parseWeightDraft(raw: string): number | null {
+  const t = raw.trim().replace(',', '.');
+  if (t === '') {
+    return null;
+  }
+  const n = parseFloat(t);
+  return Number.isNaN(n) ? null : n;
+}
+
+function parseRepsDraft(raw: string): number | null {
+  const t = raw.trim();
+  if (t === '') {
+    return null;
+  }
+  const n = parseInt(t, 10);
+  return Number.isNaN(n) ? null : n;
+}
+
 function nextSessionNumbers(rec: ProgressionRecommendation, useLb: boolean) {
   const w = rec.nextWeight;
   if (w == null) {
@@ -91,6 +117,10 @@ export default function ExerciseLoggingScreen({ navigation, route }: Props) {
   );
 
   const [useLb, setUseLb] = useState(false);
+  const [weightFocused, setWeightFocused] = useState(false);
+  const [weightDraft, setWeightDraft] = useState('');
+  const [repsFocused, setRepsFocused] = useState(false);
+  const [repsDraft, setRepsDraft] = useState('');
   const [awaitingRpe, setAwaitingRpe] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
   const [sessionHistory, setSessionHistory] = useState<ExerciseSessionGroup[]>([]);
@@ -429,6 +459,25 @@ export default function ExerciseLoggingScreen({ navigation, route }: Props) {
       ? String(Math.round(displayWeight))
       : String(Math.round(displayWeight * 10) / 10);
 
+  const repsDisplay = String(reps);
+
+  useEffect(() => {
+    if (weightFocused) {
+      setWeightDraft(weightLabel);
+    }
+  }, [weightLabel, weightFocused]);
+
+  useEffect(() => {
+    if (repsFocused) {
+      setRepsDraft(repsDisplay);
+    }
+  }, [repsDisplay, repsFocused]);
+
+  useEffect(() => {
+    setWeightFocused(false);
+    setRepsFocused(false);
+  }, [activeSet]);
+
   return (
     <View style={styles.root}>
       {sessionDeload ? (
@@ -436,7 +485,10 @@ export default function ExerciseLoggingScreen({ navigation, route }: Props) {
           <Text style={styles.warnText}>DELOAD SIGNAL — CHECK RECOMMENDATION.</Text>
         </View>
       ) : null}
-      <ScrollView contentContainerStyle={styles.scroll}>
+      <ScrollView
+        contentContainerStyle={styles.scroll}
+        showsVerticalScrollIndicator={false}
+        showsHorizontalScrollIndicator={false}>
         <Text style={styles.h1}>{exercise.name}</Text>
         <Text style={styles.lastLine}>Last: {lastLine}</Text>
 
@@ -472,7 +524,44 @@ export default function ExerciseLoggingScreen({ navigation, route }: Props) {
                 accessibilityLabel="Decrease weight">
                 <Text style={styles.stepperBtnText}>−</Text>
               </Pressable>
-              <Text style={styles.stepperValue}>{weightLabel}</Text>
+              <View
+                style={[styles.stepperValueWrap, weightFocused && styles.stepperValueWrapFocused]}>
+                <TextInput
+                  style={styles.stepperInput}
+                  value={weightFocused ? weightDraft : weightLabel}
+                  onChangeText={setWeightDraft}
+                  onFocus={() => {
+                    setWeightFocused(true);
+                    setWeightDraft(weightLabel);
+                  }}
+                  onBlur={() => {
+                    setWeightFocused(false);
+                    const trimmed = weightDraft.trim();
+                    const parsed = parseWeightDraft(weightDraft);
+                    if (trimmed === '') {
+                      dispatch(
+                        updateSetLog({
+                          exerciseId: exercise.id,
+                          setNumber: activeSet,
+                          reps: current?.reps ?? null,
+                          weight: null,
+                        }),
+                      );
+                      return;
+                    }
+                    if (parsed == null) {
+                      return;
+                    }
+                    const clamped = Math.min(wMax, Math.max(wMin, parsed));
+                    setWeightFromKnob(clamped);
+                  }}
+                  keyboardType="decimal-pad"
+                  placeholderTextColor={colors.textMuted}
+                  selectionColor={colors.accent}
+                  underlineColorAndroid="transparent"
+                  accessibilityLabel="Weight"
+                />
+              </View>
               <Pressable
                 onPress={() => bumpWeight(wStep)}
                 style={({ pressed }) => [styles.stepperBtn, pressed && styles.stepperBtnPressed]}
@@ -499,7 +588,43 @@ export default function ExerciseLoggingScreen({ navigation, route }: Props) {
                 accessibilityLabel="Decrease reps">
                 <Text style={styles.stepperBtnText}>−</Text>
               </Pressable>
-              <Text style={styles.stepperValue}>{reps}</Text>
+              <View style={[styles.stepperValueWrap, repsFocused && styles.stepperValueWrapFocused]}>
+                <TextInput
+                  style={styles.stepperInput}
+                  value={repsFocused ? repsDraft : repsDisplay}
+                  onChangeText={setRepsDraft}
+                  onFocus={() => {
+                    setRepsFocused(true);
+                    setRepsDraft(repsDisplay);
+                  }}
+                  onBlur={() => {
+                    setRepsFocused(false);
+                    const trimmed = repsDraft.trim();
+                    const parsed = parseRepsDraft(repsDraft);
+                    if (trimmed === '') {
+                      dispatch(
+                        updateSetLog({
+                          exerciseId: exercise.id,
+                          setNumber: activeSet,
+                          reps: null,
+                          weight: current?.weight ?? null,
+                        }),
+                      );
+                      return;
+                    }
+                    if (parsed == null) {
+                      return;
+                    }
+                    const clamped = Math.min(50, Math.max(1, parsed));
+                    setRepsFromKnob(clamped);
+                  }}
+                  keyboardType="number-pad"
+                  placeholderTextColor={colors.textMuted}
+                  selectionColor={colors.accent}
+                  underlineColorAndroid="transparent"
+                  accessibilityLabel="Reps"
+                />
+              </View>
               <Pressable
                 onPress={() => bumpReps(1)}
                 style={({ pressed }) => [styles.stepperBtn, pressed && styles.stepperBtnPressed]}
@@ -697,12 +822,26 @@ const styles = StyleSheet.create({
     color: colors.text,
     lineHeight: 22,
   },
-  stepperValue: {
+  stepperValueWrap: {
     flex: 1,
+    minWidth: 0,
+    justifyContent: 'center',
+    borderBottomWidth: 0,
+  },
+  stepperValueWrapFocused: {
+    borderBottomWidth: 1,
+    borderBottomColor: colors.borderActive,
+  },
+  stepperInput: {
     fontFamily: fontFamily.bold,
     fontSize: 22,
     color: colors.text,
     textAlign: 'center',
+    paddingVertical: 4,
+    paddingHorizontal: 4,
+    margin: 0,
+    borderWidth: 0,
+    backgroundColor: 'transparent',
   },
   unitInline: {
     flexDirection: 'row',

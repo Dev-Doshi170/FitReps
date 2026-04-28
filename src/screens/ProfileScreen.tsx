@@ -70,7 +70,10 @@ export default function ProfileScreen() {
 
   return (
     <CrtScreen flicker={false}>
-      <ScrollView contentContainerStyle={styles.pad}>
+      <ScrollView
+        contentContainerStyle={styles.pad}
+        showsVerticalScrollIndicator={false}
+        showsHorizontalScrollIndicator={false}>
         <Text style={styles.title}>OPERATOR PROFILE</Text>
 
         <View style={styles.card}>
@@ -124,6 +127,7 @@ export default function ProfileScreen() {
 const styles = StyleSheet.create({
   pad: {
     paddingBottom: spacing(4),
+    paddingHorizontal: spacing(2),
   },
   title: {
     fontFamily: fontFamily.bold,

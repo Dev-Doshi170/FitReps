@@ -95,6 +95,8 @@ export default function OnboardingScreen() {
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <ScrollView
           keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+          showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.scroll}>
           <View style={styles.block}>
             <Text style={styles.h1}>PROFILE SETUP</Text>

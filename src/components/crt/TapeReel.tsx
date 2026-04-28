@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 
-import { colors, fontFamily, crt } from '../../theme/theme';
+import { colors, fontFamily, crt, spacing } from '../../theme/theme';
 
 export type TapeDayStatus = 'empty' | 'done' | 'today' | 'future';
 
@@ -26,7 +26,11 @@ export default function TapeReel({ days, title = 'WEEKLY LOG' }: Props) {
       <Text style={styles.caption}>
         {title} {line}
       </Text>
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.scroll}>
+      <ScrollView
+        horizontal
+        showsVerticalScrollIndicator={false}
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.scroll}>
         {days.map((d, i) => (
           <View key={`${d.label}-${i}`} style={styles.slotOuter}>
             <View
@@ -52,6 +56,7 @@ export default function TapeReel({ days, title = 'WEEKLY LOG' }: Props) {
 const styles = StyleSheet.create({
   wrap: {
     marginBottom: crt.grid,
+    paddingHorizontal: spacing(2),
   },
   caption: {
     fontFamily: fontFamily.regular,

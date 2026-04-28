@@ -139,6 +139,8 @@ export default function HistoryScreen() {
         data={displayedDays}
         keyExtractor={keyExtractor}
         renderItem={renderDay}
+        showsVerticalScrollIndicator={false}
+        showsHorizontalScrollIndicator={false}
         contentContainerStyle={styles.list}
         onEndReached={loadMoreDays}
         onEndReachedThreshold={0.35}
@@ -205,6 +207,7 @@ export default function HistoryScreen() {
 const styles = StyleSheet.create({
   list: {
     paddingBottom: spacing(4),
+    paddingHorizontal: spacing(2),
   },
   header: {
     marginBottom: spacing(2),

@@ -143,6 +143,8 @@ export default function AuthScreen() {
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <ScrollView
           keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+          showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.scroll}>
           <View style={styles.center}>
             <Text style={styles.logo}>{LOGO_LINES.join('\n')}</Text>
@@ -178,6 +180,7 @@ const styles = StyleSheet.create({
   scroll: {
     flexGrow: 1,
     paddingBottom: spacing(4),
+    paddingHorizontal: spacing(2),
   },
   center: {
     flex: 1,

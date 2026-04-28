@@ -2,7 +2,7 @@ import type { ReactNode } from 'react';
 import { Animated, StyleSheet, View, type ViewStyle } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { colors, spacing } from '../../theme/theme';
+import { colors } from '../../theme/theme';
 import ScanlineOverlay from './ScanlineOverlay';
 import { useMountFlicker } from './useMountFlicker';
 
@@ -57,7 +57,6 @@ const styles = StyleSheet.create({
   },
   safe: {
     flex: 1,
-    paddingHorizontal: spacing(2),
   },
   inner: {
     flex: 1,

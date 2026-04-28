@@ -65,7 +65,10 @@ export default function WorkoutPlansScreen(_props: Props) {
 
   return (
     <CrtScreen flicker={false}>
-      <ScrollView contentContainerStyle={styles.pad}>
+      <ScrollView
+        contentContainerStyle={styles.pad}
+        showsVerticalScrollIndicator={false}
+        showsHorizontalScrollIndicator={false}>
         <Text style={styles.body}>
           SELECT A PROGRAM. ACTIVE PLAN IS MARKED. SET ACTIVE FROM DETAIL VIEW.
         </Text>
@@ -113,6 +116,7 @@ export default function WorkoutPlansScreen(_props: Props) {
 const styles = StyleSheet.create({
   pad: {
     paddingBottom: spacing(4),
+    paddingHorizontal: spacing(2),
   },
   body: {
     fontFamily: fontFamily.regular,

@@ -275,40 +275,101 @@ export type Database = {
       workout_logs: {
         Row: {
           date: string
+          exercise_id: string | null
           exercise_name: string
           id: string
           plan_day_id: string | null
           reps: number | null
           rpe: string | null
+          session_id: string | null
           set_number: number
           user_id: string
           weight: number | null
         }
         Insert: {
           date?: string
+          exercise_id?: string | null
           exercise_name: string
           id?: string
           plan_day_id?: string | null
           reps?: number | null
           rpe?: string | null
+          session_id?: string | null
           set_number: number
           user_id: string
           weight?: number | null
         }
         Update: {
           date?: string
+          exercise_id?: string | null
           exercise_name?: string
           id?: string
           plan_day_id?: string | null
           reps?: number | null
           rpe?: string | null
+          session_id?: string | null
           set_number?: number
           user_id?: string
           weight?: number | null
         }
         Relationships: [
           {
+            foreignKeyName: "workout_logs_exercise_id_fkey"
+            columns: ["exercise_id"]
+            isOneToOne: false
+            referencedRelation: "exercises"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "workout_logs_plan_day_id_fkey"
+            columns: ["plan_day_id"]
+            isOneToOne: false
+            referencedRelation: "plan_days"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "workout_logs_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "workout_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      workout_sessions: {
+        Row: {
+          created_at: string | null
+          date: string
+          ended_at: string | null
+          id: string
+          notes: string | null
+          plan_day_id: string | null
+          started_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          date?: string
+          ended_at?: string | null
+          id?: string
+          notes?: string | null
+          plan_day_id?: string | null
+          started_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          date?: string
+          ended_at?: string | null
+          id?: string
+          notes?: string | null
+          plan_day_id?: string | null
+          started_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workout_sessions_plan_day_id_fkey"
             columns: ["plan_day_id"]
             isOneToOne: false
             referencedRelation: "plan_days"
@@ -321,7 +382,31 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      get_exercise_progress: {
+        Args: { p_exercise_name: string; p_user_id: string }
+        Returns: {
+          best_weight: number
+          date: string
+          estimated_1rm: number
+        }[]
+      }
+      get_muscle_group_volume: {
+        Args: { p_focus: string; p_user_id: string }
+        Returns: {
+          date: string
+          session_count: number
+          total_volume: number
+        }[]
+      }
+      get_weekly_summary: {
+        Args: { p_user_id: string }
+        Returns: {
+          avg_rpe: number
+          total_sessions: number
+          total_volume: number
+          week_start: string
+        }[]
+      }
     }
     Enums: {
       [_ in never]: never

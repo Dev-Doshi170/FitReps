@@ -33,6 +33,19 @@ function IconHistory({ active }: { active: boolean }) {
   );
 }
 
+function IconAnalytics({ active }: { active: boolean }) {
+  const c = active ? colors.accent : colors.textMuted;
+  return (
+    <Svg width={24} height={24} viewBox="0 0 24 24">
+      <Path d="M4 18 L10 12 L14 15 L20 8" stroke={c} strokeWidth={2} fill="none" />
+      <Rect x={3} y={17} width={2} height={2} fill={c} />
+      <Rect x={9} y={11} width={2} height={2} fill={c} />
+      <Rect x={13} y={14} width={2} height={2} fill={c} />
+      <Rect x={19} y={7} width={2} height={2} fill={c} />
+    </Svg>
+  );
+}
+
 function IconProfile({ active }: { active: boolean }) {
   const c = active ? colors.accent : colors.textMuted;
   return (
@@ -45,6 +58,7 @@ function IconProfile({ active }: { active: boolean }) {
 
 const icons: Record<string, (a: { active: boolean }) => ReactElement> = {
   Dashboard: props => <IconDashboard {...props} />,
+  Analytics: props => <IconAnalytics {...props} />,
   History: props => <IconHistory {...props} />,
   Profile: props => <IconProfile {...props} />,
 };

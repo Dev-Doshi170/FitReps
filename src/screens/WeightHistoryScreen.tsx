@@ -55,6 +55,8 @@ export default function WeightHistoryScreen() {
         ListHeaderComponent={listHeader}
         contentContainerStyle={styles.list}
         keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+        showsHorizontalScrollIndicator={false}
       />
     </CrtScreen>
   );
@@ -63,6 +65,7 @@ export default function WeightHistoryScreen() {
 const styles = StyleSheet.create({
   list: {
     paddingBottom: spacing(4),
+    paddingHorizontal: spacing(2),
   },
   header: {
     marginBottom: spacing(2),

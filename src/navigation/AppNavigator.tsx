@@ -3,6 +3,7 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 
 import CameraScreen from '../screens/CameraScreen';
+import AnalyticsScreen from '../screens/AnalyticsScreen';
 import DashboardScreen from '../screens/DashboardScreen';
 import ExerciseLoggingScreen from '../screens/ExerciseLoggingScreen';
 import HistoryScreen from '../screens/HistoryScreen';
@@ -18,6 +19,7 @@ import HardwareTabBar from './HardwareTabBar';
 
 export type MainTabParamList = {
   Dashboard: undefined;
+  Analytics: undefined;
   History: undefined;
   Profile: undefined;
 };
@@ -51,6 +53,11 @@ function MainTabs() {
         name="Dashboard"
         component={DashboardScreen}
         options={{ tabBarLabel: 'TODAY' }}
+      />
+      <Tab.Screen
+        name="Analytics"
+        component={AnalyticsScreen}
+        options={{ tabBarLabel: 'ANALYTICS' }}
       />
       <Tab.Screen
         name="History"
